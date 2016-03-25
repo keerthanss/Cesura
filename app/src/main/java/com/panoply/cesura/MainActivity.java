@@ -12,6 +12,7 @@ import android.os.IBinder;
 import android.provider.MediaStore;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.Snackbar;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.support.design.widget.NavigationView;
@@ -36,6 +37,8 @@ import java.util.Comparator;
 public class MainActivity extends AppCompatActivity
         implements NavigationView.OnNavigationItemSelectedListener {
 
+    private static final String TAG = "MainActivity";
+
     private ListView songListView;
     private ArrayList<Song> songArrayList;
 
@@ -43,8 +46,24 @@ public class MainActivity extends AppCompatActivity
     private Intent playIntent;
     private boolean musicBound = false;
 
+    private ServiceConnection musicConnection = new ServiceConnection() {
+        @Override
+        public void onServiceConnected(ComponentName name, IBinder service) {
+            MusicService.MusicBinder binder = (MusicService.MusicBinder) service;
+            musicService = binder.getService();
+            musicService.setList(songArrayList);
+            musicBound = true;
+        }
+
+        @Override
+        public void onServiceDisconnected(ComponentName name) {
+            musicBound = false;
+        }
+    };
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        Log.d(TAG, "onCreate");
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
@@ -80,22 +99,8 @@ public class MainActivity extends AppCompatActivity
         songListView.setAdapter(new SongAdapter(this, songArrayList));
     }
 
-    private ServiceConnection musicConnection = new ServiceConnection() {
-        @Override
-        public void onServiceConnected(ComponentName name, IBinder service) {
-            MusicService.MusicBinder binder = (MusicService.MusicBinder) service;
-            musicService = binder.getService();
-            musicService.setList(songArrayList);
-            musicBound = true;
-        }
-
-        @Override
-        public void onServiceDisconnected(ComponentName name) {
-            musicBound = false;
-        }
-    };
-
     public void populateSongList(){
+        Log.d(TAG, "populating the list of songs");
         ContentResolver musicResolver = getContentResolver();
         Uri externalMusicUri = MediaStore.Audio.Media.EXTERNAL_CONTENT_URI;
         /*
@@ -119,6 +124,7 @@ public class MainActivity extends AppCompatActivity
 
     @Override
     protected void onStart() {
+        Log.d(TAG, "onStart");
         super.onStart();
         if(playIntent == null){
             playIntent = new Intent(this, MusicService.class);
@@ -183,7 +189,24 @@ public class MainActivity extends AppCompatActivity
         drawer.closeDrawer(GravityCompat.START);
         return true;
     }
+
+    public void songPicked(View view){
+        Log.d(TAG, "Song picked = " + view.toString());
+        musicService.setSongPosition(Integer.parseInt(view.getTag().toString()));
+        musicService.playSong();
+    }
 }
+
+
+
+
+
+
+
+
+
+
+
 
 class SongAdapter extends BaseAdapter{
 
