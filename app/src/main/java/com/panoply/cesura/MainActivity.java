@@ -27,6 +27,7 @@ import android.view.ViewGroup;
 import android.widget.BaseAdapter;
 import android.widget.LinearLayout;
 import android.widget.ListView;
+import android.widget.MediaController;
 import android.widget.TextView;
 
 import java.util.ArrayList;
@@ -35,7 +36,7 @@ import java.util.Collections;
 import java.util.Comparator;
 
 public class MainActivity extends AppCompatActivity
-        implements NavigationView.OnNavigationItemSelectedListener {
+        implements NavigationView.OnNavigationItemSelectedListener, MediaController.MediaPlayerControl {
 
     private static final String TAG = "MainActivity";
 
@@ -45,6 +46,8 @@ public class MainActivity extends AppCompatActivity
     private MusicService musicService;
     private Intent playIntent;
     private boolean musicBound = false;
+
+    private MusicController controller;
 
     private ServiceConnection musicConnection = new ServiceConnection() {
         @Override
@@ -69,15 +72,6 @@ public class MainActivity extends AppCompatActivity
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
 
-        FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
-        fab.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                Snackbar.make(view, "Replace with your own action", Snackbar.LENGTH_LONG)
-                        .setAction("Action", null).show();
-            }
-        });
-
         DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
         ActionBarDrawerToggle toggle = new ActionBarDrawerToggle(
                 this, drawer, toolbar, R.string.navigation_drawer_open, R.string.navigation_drawer_close);
@@ -97,6 +91,39 @@ public class MainActivity extends AppCompatActivity
             }
         });
         songListView.setAdapter(new SongAdapter(this, songArrayList));
+
+        setController();
+    }
+
+    private void setController(){
+        controller = new MusicController(this);
+        controller.setPrevNextListeners(
+                new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        playNext();
+                    }
+                },
+                new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        playPrev();
+                    }
+                }
+        );
+        controller.setMediaPlayer(this);
+        controller.setAnchorView(findViewById(R.id.songList));
+        controller.setEnabled(true);
+    }
+
+    private void playNext(){
+        musicService.playNext();
+        controller.show(0);
+    }
+
+    private void playPrev(){
+        musicService.playPrev();
+        controller.show(0);
     }
 
     public void populateSongList(){
@@ -194,6 +221,70 @@ public class MainActivity extends AppCompatActivity
         Log.d(TAG, "Song picked = " + view.toString());
         musicService.setSongPosition(Integer.parseInt(view.getTag().toString()));
         musicService.playSong();
+    }
+
+    @Override
+    public void start() {
+        if(musicService!=null && musicBound)
+            musicService.startPlayer();
+    }
+
+    @Override
+    public void pause() {
+        if(musicService!=null && musicBound)
+            musicService.pausePlayer();
+    }
+
+    @Override
+    public int getDuration() {
+        if(musicService!=null && musicBound && musicService.isPlaying())
+            return musicService.getDuration();
+        return 0;
+    }
+
+    @Override
+    public int getCurrentPosition() {
+        if(musicService!=null && musicBound && musicService.isPlaying())
+            return musicService.getCurrentPosition();
+        return 0;
+    }
+
+    @Override
+    public void seekTo(int pos) {
+        if(musicService!=null && musicBound)
+            musicService.seek(pos);
+    }
+
+    @Override
+    public boolean isPlaying() {
+        if(musicService!=null && musicBound)
+            return musicService.isPlaying();
+        return false;
+    }
+
+    @Override
+    public int getBufferPercentage() {
+        return 0;
+    }
+
+    @Override
+    public boolean canPause() {
+        return true;
+    }
+
+    @Override
+    public boolean canSeekBackward() {
+        return true;
+    }
+
+    @Override
+    public boolean canSeekForward() {
+        return true;
+    }
+
+    @Override
+    public int getAudioSessionId() {
+        return 0;
     }
 }
 

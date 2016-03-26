@@ -102,5 +102,44 @@ public class MusicService extends Service implements MediaPlayer.OnPreparedListe
         }
         mediaPlayer.prepareAsync();
     }
+
+    public int getCurrentPosition(){
+        return mediaPlayer.getCurrentPosition();
+    }
+
+    public int getDuration() {
+        return mediaPlayer.getDuration();
+    }
+
+    public boolean isPlaying(){
+        return mediaPlayer.isPlaying();
+    }
+
+    public void pausePlayer() {
+        mediaPlayer.pause();
+    }
+
+    public void seek(int position){
+        mediaPlayer.seekTo(position);
+    }
+
+    public void startPlayer(){
+        mediaPlayer.start();
+    }
+
+
+    public void playNext(){
+        songPosition++;
+        if(songPosition >= songArrayList.size())
+            songPosition = 0;
+        playSong();
+    }
+
+    public void playPrev(){
+        songPosition--;
+        if(songPosition < 0 )
+            songPosition = songArrayList.size() - 1;
+        playSong();
+    }
 }
 
