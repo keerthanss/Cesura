@@ -1,5 +1,7 @@
 package com.panoply.cesura;
 
+import android.app.Notification;
+import android.app.PendingIntent;
 import android.app.Service;
 import android.content.ContentUris;
 import android.content.Intent;
@@ -20,11 +22,13 @@ public class MusicService extends Service implements MediaPlayer.OnPreparedListe
         MediaPlayer.OnCompletionListener, MediaPlayer.OnErrorListener {
 
     private static final String TAG = "MusicService";
+    private static final int NOTIFY_ID = 1;
 
     private MediaPlayer mediaPlayer;
     private int songPosition;
     private ArrayList<Song> songArrayList;
     private final IBinder binder = new MusicBinder();
+    private String songTitle = "";
 
     @Override
     public void onCreate() {
@@ -74,6 +78,21 @@ public class MusicService extends Service implements MediaPlayer.OnPreparedListe
     public void onPrepared(MediaPlayer mp) {
         Log.d(TAG, "media player prepared");
         mp.start();
+
+        Intent intent = new Intent(this, MainActivity.class);
+        intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+        PendingIntent pendingIntent = PendingIntent.getActivity(this, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT);
+
+        Notification.Builder builder = new Notification.Builder(this);
+        builder.setContentIntent(pendingIntent)
+                .setSmallIcon(R.drawable.android_music_player_play)
+                .setTicker(songTitle)
+                .setOngoing(true)
+                .setContentTitle("Playing")
+                .setContentText(songTitle);
+        Notification notif = builder.build();
+        startForeground(NOTIFY_ID, notif);
+
     }
 
     @Nullable
@@ -93,6 +112,7 @@ public class MusicService extends Service implements MediaPlayer.OnPreparedListe
         Log.d(TAG, "playing song");
         mediaPlayer.reset();
         Song song = songArrayList.get(songPosition);
+        songTitle = song.getTitle();
         Uri trackUri = ContentUris.withAppendedId(MediaStore.Audio.Media.EXTERNAL_CONTENT_URI, song.getId());
         try {
             mediaPlayer.setDataSource(getApplicationContext(), trackUri);
@@ -140,6 +160,11 @@ public class MusicService extends Service implements MediaPlayer.OnPreparedListe
         if(songPosition < 0 )
             songPosition = songArrayList.size() - 1;
         playSong();
+    }
+
+    @Override
+    public void onDestroy() {
+        stopForeground(true);
     }
 }
 
