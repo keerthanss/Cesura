@@ -28,7 +28,7 @@ public class MusicService extends Service implements MediaPlayer.OnPreparedListe
     private int songPosition;
     private ArrayList<Song> songArrayList;
     private final IBinder binder = new MusicBinder();
-    private String songTitle = "";
+    private Song currentSong;
 
     @Override
     public void onCreate() {
@@ -37,6 +37,7 @@ public class MusicService extends Service implements MediaPlayer.OnPreparedListe
         mediaPlayer = new MediaPlayer();
         initMusicPlayer();
         songPosition = 0;
+        currentSong = null;
     }
 
     private void initMusicPlayer(){
@@ -66,11 +67,15 @@ public class MusicService extends Service implements MediaPlayer.OnPreparedListe
 
     @Override
     public void onCompletion(MediaPlayer mp) {
-
+        if(mp.getCurrentPosition() != 0){
+            mp.reset();
+            playNext();
+        }
     }
 
     @Override
     public boolean onError(MediaPlayer mp, int what, int extra) {
+        mp.reset();
         return false;
     }
 
@@ -86,12 +91,13 @@ public class MusicService extends Service implements MediaPlayer.OnPreparedListe
         Notification.Builder builder = new Notification.Builder(this);
         builder.setContentIntent(pendingIntent)
                 .setSmallIcon(R.drawable.android_music_player_play)
-                .setTicker(songTitle)
+                .setTicker(currentSong.getTitle())
                 .setOngoing(true)
                 .setContentTitle("Playing")
-                .setContentText(songTitle);
+                .setContentText(currentSong.getTitle() + "  - " + currentSong.getArtist());
         Notification notif = builder.build();
         startForeground(NOTIFY_ID, notif);
+        Log.d(TAG, "notification sent");
 
     }
 
@@ -103,6 +109,7 @@ public class MusicService extends Service implements MediaPlayer.OnPreparedListe
 
     @Override
     public boolean onUnbind(Intent intent) {
+        Log.d(TAG, "unbind service");
         mediaPlayer.stop();
         mediaPlayer.release();
         return false;
@@ -111,9 +118,8 @@ public class MusicService extends Service implements MediaPlayer.OnPreparedListe
     public void playSong(){
         Log.d(TAG, "playing song");
         mediaPlayer.reset();
-        Song song = songArrayList.get(songPosition);
-        songTitle = song.getTitle();
-        Uri trackUri = ContentUris.withAppendedId(MediaStore.Audio.Media.EXTERNAL_CONTENT_URI, song.getId());
+        currentSong = songArrayList.get(songPosition);
+        Uri trackUri = ContentUris.withAppendedId(MediaStore.Audio.Media.EXTERNAL_CONTENT_URI, currentSong.getId());
         try {
             mediaPlayer.setDataSource(getApplicationContext(), trackUri);
         } catch (IOException e) {
@@ -164,6 +170,7 @@ public class MusicService extends Service implements MediaPlayer.OnPreparedListe
 
     @Override
     public void onDestroy() {
+        Log.d(TAG, "destroying service");
         stopForeground(true);
     }
 }

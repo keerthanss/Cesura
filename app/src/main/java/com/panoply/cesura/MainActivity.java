@@ -6,6 +6,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
 import android.database.Cursor;
+import android.graphics.PorterDuff;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.IBinder;
@@ -24,10 +25,12 @@ import android.support.v7.widget.Toolbar;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.ViewGroup;
+import android.view.ViewTreeObserver;
 import android.widget.BaseAdapter;
 import android.widget.LinearLayout;
 import android.widget.ListView;
 import android.widget.MediaController;
+import android.widget.RelativeLayout;
 import android.widget.TextView;
 
 import java.util.ArrayList;
@@ -92,10 +95,18 @@ public class MainActivity extends AppCompatActivity
         });
         songListView.setAdapter(new SongAdapter(this, songArrayList));
 
-        setController();
+        RelativeLayout root = (RelativeLayout) findViewById(R.id.relLayout);
+        ViewTreeObserver vto = root.getViewTreeObserver();
+        vto.addOnGlobalLayoutListener(new ViewTreeObserver.OnGlobalLayoutListener() {
+            @Override
+            public void onGlobalLayout() {
+                setController();
+            }
+        });
     }
 
     private void setController(){
+        Log.d(TAG, "Setting up the MusicController");
         controller = new MusicController(this);
         controller.setPrevNextListeners(
                 new View.OnClickListener() {
@@ -114,6 +125,7 @@ public class MainActivity extends AppCompatActivity
         controller.setMediaPlayer(this);
         controller.setAnchorView(findViewById(R.id.songList));
         controller.setEnabled(true);
+        controller.show();
     }
 
     private void playNext(){
@@ -127,7 +139,7 @@ public class MainActivity extends AppCompatActivity
     }
 
     public void populateSongList(){
-        Log.d(TAG, "populating the list of songs");
+        Log.d(TAG, "Populating the list of songs");
         ContentResolver musicResolver = getContentResolver();
         Uri externalMusicUri = MediaStore.Audio.Media.EXTERNAL_CONTENT_URI;
         /*
@@ -198,18 +210,15 @@ public class MainActivity extends AppCompatActivity
         // Handle navigation view item clicks here.
         int id = item.getItemId();
 
-        if (id == R.id.nav_camera) {
-            // Handle the camera action
-        } else if (id == R.id.nav_gallery) {
-
-        } else if (id == R.id.nav_slideshow) {
-
-        } else if (id == R.id.nav_manage) {
-
-        } else if (id == R.id.nav_share) {
-
-        } else if (id == R.id.nav_send) {
-
+        switch(id){
+            case R.id.nav_songs:
+                break;
+            case R.id.nav_artists:
+                break;
+            case R.id.nav_playlists:
+                break;
+            case R.id.nav_recommendation:
+                break;
         }
 
         DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
@@ -218,21 +227,21 @@ public class MainActivity extends AppCompatActivity
     }
 
     public void songPicked(View view){
-        Log.d(TAG, "Song picked = " + view.toString());
         musicService.setSongPosition(Integer.parseInt(view.getTag().toString()));
         musicService.playSong();
     }
 
     @Override
     public void start() {
-        if(musicService!=null && musicBound)
-            musicService.startPlayer();
+        //if(musicService!=null && musicBound)
+        Log.d(TAG, "Starting MediaPlayer");
+        musicService.startPlayer();
     }
 
     @Override
     public void pause() {
-        if(musicService!=null && musicBound)
-            musicService.pausePlayer();
+        Log.d(TAG,"Pause");
+        musicService.pausePlayer();
     }
 
     @Override
