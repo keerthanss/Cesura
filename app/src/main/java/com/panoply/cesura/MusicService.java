@@ -27,6 +27,7 @@ public class MusicService extends Service implements MediaPlayer.OnPreparedListe
     private MediaPlayer mediaPlayer;
     private int songPosition;
     private ArrayList<Song> songArrayList;
+    private ArrayList<Song> playingQueue;
     private final IBinder binder = new MusicBinder();
     private Song currentSong;
 
@@ -52,6 +53,14 @@ public class MusicService extends Service implements MediaPlayer.OnPreparedListe
     public void setList(ArrayList<Song> songArrayList){
         Log.d(TAG, "the song list has been set");
         this.songArrayList = songArrayList;
+    }
+
+    public void setPlayingQueue(ArrayList<Song> playingQueue){
+        this.playingQueue = playingQueue;
+    }
+
+    public void clearQueue(){
+        playingQueue = null;
     }
 
     public void setSongPosition(int songPosition){
@@ -118,7 +127,7 @@ public class MusicService extends Service implements MediaPlayer.OnPreparedListe
     public void playSong(){
         Log.d(TAG, "playing song");
         mediaPlayer.reset();
-        currentSong = songArrayList.get(songPosition);
+        currentSong = playingQueue.get(songPosition);
         Uri trackUri = ContentUris.withAppendedId(MediaStore.Audio.Media.EXTERNAL_CONTENT_URI, currentSong.getId());
         try {
             mediaPlayer.setDataSource(getApplicationContext(), trackUri);
@@ -156,7 +165,7 @@ public class MusicService extends Service implements MediaPlayer.OnPreparedListe
 
     public void playNext(){
         songPosition++;
-        if(songPosition >= songArrayList.size())
+        if(songPosition >= playingQueue.size())
             songPosition = 0;
         playSong();
     }
@@ -164,7 +173,7 @@ public class MusicService extends Service implements MediaPlayer.OnPreparedListe
     public void playPrev(){
         songPosition--;
         if(songPosition < 0 )
-            songPosition = songArrayList.size() - 1;
+            songPosition = playingQueue.size() - 1;
         playSong();
     }
 

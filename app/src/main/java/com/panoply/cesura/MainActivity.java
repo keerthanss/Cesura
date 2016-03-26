@@ -46,6 +46,11 @@ public class MainActivity extends AppCompatActivity
     private ListView songListView;
     private ArrayList<Song> songArrayList;
 
+    private ArrayList<Song> playingQueue;
+    private ArrayList<Artist> artistArrayList;
+
+    private SongAdapter adapter;
+
     private MusicService musicService;
     private Intent playIntent;
     private boolean musicBound = false;
@@ -55,9 +60,11 @@ public class MainActivity extends AppCompatActivity
     private ServiceConnection musicConnection = new ServiceConnection() {
         @Override
         public void onServiceConnected(ComponentName name, IBinder service) {
+            Log.d(TAG, "Service connected");
             MusicService.MusicBinder binder = (MusicService.MusicBinder) service;
             musicService = binder.getService();
             musicService.setList(songArrayList);
+            musicService.setPlayingQueue(playingQueue);
             musicBound = true;
         }
 
@@ -84,16 +91,22 @@ public class MainActivity extends AppCompatActivity
         NavigationView navigationView = (NavigationView) findViewById(R.id.nav_view);
         navigationView.setNavigationItemSelectedListener(this);
 
-        songListView = (ListView)findViewById(R.id.songList);
         songArrayList = new ArrayList<Song>();
         populateSongList();
+        artistArrayList = Artist.fetchArtists(songArrayList);
         Collections.sort(songArrayList, new Comparator<Song>() {
             @Override
             public int compare(Song lhs, Song rhs) {
                 return lhs.getTitle().compareTo(rhs.getTitle());
             }
         });
-        songListView.setAdapter(new SongAdapter(this, songArrayList));
+        playingQueue = songArrayList;
+
+        songListView = (ListView)findViewById(R.id.songList);
+        adapter = new SongAdapter(this, songArrayList, artistArrayList);
+        adapter.changeMode(SongAdapter.SHOW_SONGS);
+        adapter.setPlayingQueue(playingQueue);
+        songListView.setAdapter(adapter);
 
         RelativeLayout root = (RelativeLayout) findViewById(R.id.relLayout);
         ViewTreeObserver vto = root.getViewTreeObserver();
@@ -212,10 +225,18 @@ public class MainActivity extends AppCompatActivity
 
         switch(id){
             case R.id.nav_songs:
+                adapter.changeMode(SongAdapter.SHOW_SONGS);
+                songListView.setAdapter(adapter);
                 break;
             case R.id.nav_artists:
+                adapter.changeMode(SongAdapter.SHOW_ARTISTS);
+                songListView.setAdapter(adapter);
                 break;
-            case R.id.nav_playlists:
+            /*case R.id.nav_playlists:
+                break;*/
+            case R.id.nav_nowplaying:
+                adapter.changeMode(SongAdapter.SHOW_QUEUE);
+                songListView.setAdapter(adapter);
                 break;
             case R.id.nav_recommendation:
                 break;
@@ -227,7 +248,25 @@ public class MainActivity extends AppCompatActivity
     }
 
     public void songPicked(View view){
+        switch (adapter.getMode()){
+            case SongAdapter.SHOW_SONGS:
+                playingQueue = songArrayList;
+                break;
+            case SongAdapter.SHOW_QUEUE:
+                break;
+        }
+        musicService.setPlayingQueue(playingQueue);
+        adapter.setPlayingQueue(playingQueue);
         musicService.setSongPosition(Integer.parseInt(view.getTag().toString()));
+        musicService.playSong();
+    }
+
+    public void artistPicked(View view){
+        Artist artist = artistArrayList.get(Integer.parseInt(view.getTag().toString()));
+        playingQueue = artist.getSongsByArtist();
+        musicService.setPlayingQueue(playingQueue);
+        adapter.setPlayingQueue(playingQueue);
+        musicService.setSongPosition(0);
         musicService.playSong();
     }
 
@@ -310,38 +349,116 @@ public class MainActivity extends AppCompatActivity
 
 class SongAdapter extends BaseAdapter{
 
+    public static final int SHOW_SONGS = 0;
+    public static final int SHOW_ARTISTS = 1;
+    public static final int SHOW_PLAYLISTS = 2;
+    public static final int SHOW_QUEUE = 3;
+
+    private static final String TAG = "SongAdapter";
+
     private ArrayList<Song> songList;
     private LayoutInflater layoutInflater;
+    private ArrayList<Artist> artistList;
+    private ArrayList<Song> playingQueue;
 
-    public SongAdapter(Context context, ArrayList<Song> songList){
+    private int mode;
+
+    public SongAdapter(Context context, ArrayList<Song> songList, ArrayList<Artist> artistList){
         this.songList = songList;
+        this.artistList = artistList;
         layoutInflater = LayoutInflater.from(context);
+        mode = SHOW_SONGS;
+        playingQueue = null;
     }
+
+    public void setPlayingQueue(ArrayList<Song> playingQueue){
+        this.playingQueue = playingQueue;
+    }
+
+    public boolean changeMode(int newMode){
+        switch (newMode){
+            case SHOW_SONGS:
+            case SHOW_ARTISTS:
+            case SHOW_PLAYLISTS:
+            case SHOW_QUEUE:
+                mode = newMode;
+                return true;
+        }
+        return false;
+    }
+
+    public int getMode(){return mode;}
 
     @Override
     public int getCount() {
-        return songList.size();
+        switch (mode){
+            case SHOW_SONGS:
+                return songList.size();
+            case SHOW_ARTISTS:
+                return artistList.size();
+            case SHOW_QUEUE:
+                return playingQueue.size();
+        }
+        return 0;
     }
 
     @Override
     public Object getItem(int position) {
-        return songList.get(position);
+        switch (mode){
+            case SHOW_SONGS:
+                return songList.get(position);
+            case SHOW_ARTISTS:
+                return artistList.get(position);
+            case SHOW_QUEUE:
+                return playingQueue.get(position);
+        }
+        return null;
     }
 
     @Override
     public long getItemId(int position) {
-        return songList.get(position).getId();
+        switch(mode){
+            case SHOW_SONGS:
+                return songList.get(position).getId();
+            case SHOW_QUEUE:
+                return playingQueue.get(position).getId();
+        }
+        return 0;
     }
 
     @Override
     public View getView(int position, View convertView, ViewGroup parent) {
+        switch (mode){
+            case SHOW_SONGS:
+                return showSongs(position, parent, songList);
+            case SHOW_ARTISTS:
+                return showArtist(position, parent);
+            case SHOW_QUEUE:
+                return showSongs(position, parent, playingQueue);
+        }
+        return null;
+    }
+
+    private LinearLayout showSongs(int position, ViewGroup parent, ArrayList<Song> list){
         LinearLayout linearLayout = (LinearLayout) layoutInflater.inflate(R.layout.song, parent, false);
         linearLayout.setOrientation(LinearLayout.VERTICAL);
         TextView titleTV = (TextView) linearLayout.findViewById(R.id.songName);
         TextView artistTV = (TextView) linearLayout.findViewById(R.id.songArtist);
-        Song song = songList.get(position);
+        Song song = list.get(position);
         titleTV.setText(song.getTitle());
         artistTV.setText(song.getArtist());
+        linearLayout.setTag(position);
+        return linearLayout;
+    }
+
+    private LinearLayout showArtist(int position, ViewGroup parent){
+        LinearLayout linearLayout = (LinearLayout) layoutInflater.inflate(R.layout.artist, parent, false);
+        linearLayout.setOrientation(LinearLayout.VERTICAL);
+        TextView nameTV = (TextView) linearLayout.findViewById(R.id.artistName);
+        TextView numberTV = (TextView) linearLayout.findViewById(R.id.numberOfSongs);
+        Artist artist = artistList.get(position);
+        nameTV.setText(artist.getName());
+        numberTV.setText(String.valueOf(artist.getNumberOfSongs()) + " songs");
         linearLayout.setTag(position);
         return linearLayout;
     }
