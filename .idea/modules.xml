@@ -4,6 +4,8 @@
     <modules>
       <module fileurl="file://$PROJECT_DIR$/Cesura.iml" filepath="$PROJECT_DIR$/Cesura.iml" />
       <module fileurl="file://$PROJECT_DIR$/app/app.iml" filepath="$PROJECT_DIR$/app/app.iml" />
+      <module fileurl="file://$PROJECT_DIR$/app/libs/jEN/jEN.iml" filepath="$PROJECT_DIR$/app/libs/jEN/jEN.iml" />
+      <module fileurl="file://$PROJECT_DIR$/app/libs/json_simple-1.1/json_simple-1.1.iml" filepath="$PROJECT_DIR$/app/libs/json_simple-1.1/json_simple-1.1.iml" />
     </modules>
   </component>
 </project>

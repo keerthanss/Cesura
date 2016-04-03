@@ -12,7 +12,6 @@ public class TrackScore {
     private float loudness;
     private float energy;
     private float danceability;
-    private float speechiness;
 
     public TrackScore(String ID, int key, float tempo, int timeSignature, float loudness, float energy, float danceability, float speechiness) {
         this.ID = ID;
@@ -22,7 +21,6 @@ public class TrackScore {
         this.loudness = loudness;
         this.energy = energy;
         this.danceability = danceability;
-        this.speechiness = speechiness;
     }
 
     public TrackScore() {
@@ -33,7 +31,6 @@ public class TrackScore {
         loudness = 0;
         energy = 0;
         danceability = 0;
-        speechiness = 0;
     }
 
     public String getID()
@@ -94,11 +91,6 @@ public class TrackScore {
         this.energy = energy;
     }
 
-    public float getSpeechiness() {
-        return speechiness;
-    }
-
-    public void setSpeechiness(float speechiness) {
-        this.speechiness = speechiness;
-    }
 }
+
+

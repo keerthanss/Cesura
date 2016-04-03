@@ -79,7 +79,7 @@ public class DatabaseOperations extends SQLiteOpenHelper {
         contentValues.put(COL_LOUDNESS, trackScore.getLoudness());
         contentValues.put(COL_ENERGY, trackScore.getEnergy());
         contentValues.put(COL_DANCE, trackScore.getDanceability());
-        contentValues.put(COL_SPEECH, trackScore.getSpeechiness());
+        //contentValues.put(COL_SPEECH, trackScore.getSpeechiness());
         db.insert(DB_NAME, null, contentValues);
     }
 
@@ -92,7 +92,7 @@ public class DatabaseOperations extends SQLiteOpenHelper {
         contentValues.put(COL_LOUDNESS, trackScore.getLoudness());
         contentValues.put(COL_ENERGY, trackScore.getEnergy());
         contentValues.put(COL_DANCE, trackScore.getDanceability());
-        contentValues.put(COL_SPEECH, trackScore.getSpeechiness());
+        //contentValues.put(COL_SPEECH, trackScore.getSpeechiness());
         db.update(DB_NAME, contentValues, COL_ID + " = ?", new String[]{trackScore.getID()});
     }
 
