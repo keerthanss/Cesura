@@ -4,6 +4,8 @@ package com.panoply.cesura;
  * Created by eeshwarg on 03-04-2016.
  */
 public class TrackScore {
+
+    private String ID;
     private int key;
     private float tempo;
     private int timeSignature;
@@ -12,7 +14,8 @@ public class TrackScore {
     private float danceability;
     private float speechiness;
 
-    public TrackScore(int key, float tempo, int timeSignature, float loudness, float energy, float danceability, float speechiness) {
+    public TrackScore(String ID, int key, float tempo, int timeSignature, float loudness, float energy, float danceability, float speechiness) {
+        this.ID = ID;
         this.key = key;
         this.tempo = tempo;
         this.timeSignature = timeSignature;
@@ -20,6 +23,16 @@ public class TrackScore {
         this.energy = energy;
         this.danceability = danceability;
         this.speechiness = speechiness;
+    }
+
+    public String getID()
+    {
+        return ID;
+    }
+
+    public void setID(String ID)
+    {
+        this.ID = ID;
     }
 
     public int getKey() {
