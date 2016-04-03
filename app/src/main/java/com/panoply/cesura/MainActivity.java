@@ -1,9 +1,11 @@
 package com.panoply.cesura;
 
+import android.content.BroadcastReceiver;
 import android.content.ComponentName;
 import android.content.ContentResolver;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.ServiceConnection;
 import android.database.Cursor;
 import android.graphics.PorterDuff;
@@ -43,6 +45,9 @@ public class MainActivity extends AppCompatActivity
 
     private static final String TAG = "MainActivity";
 
+    public static final String TRANSMIT_TITLE = "songTitleInfo";
+    public static final String TRANSMIT_ARTIST = "songArtistInfo";
+
     private ListView songListView;
     private ArrayList<Song> songArrayList;
 
@@ -56,6 +61,8 @@ public class MainActivity extends AppCompatActivity
     private boolean musicBound = false;
 
     private MusicController controller;
+
+    private SongDataReceiver receiver;
 
     private ServiceConnection musicConnection = new ServiceConnection() {
         @Override
@@ -108,7 +115,7 @@ public class MainActivity extends AppCompatActivity
         adapter.setPlayingQueue(playingQueue);
         songListView.setAdapter(adapter);
 
-        RelativeLayout root = (RelativeLayout) findViewById(R.id.relLayout);
+        LinearLayout root = (LinearLayout) findViewById(R.id.linLayout);
         ViewTreeObserver vto = root.getViewTreeObserver();
         vto.addOnGlobalLayoutListener(new ViewTreeObserver.OnGlobalLayoutListener() {
             @Override
@@ -136,18 +143,35 @@ public class MainActivity extends AppCompatActivity
                 }
         );
         controller.setMediaPlayer(this);
-        controller.setAnchorView(findViewById(R.id.songList));
+        try {
+            controller.setAnchorView(findViewById(R.id.linLayout), musicService.getCurrentSong().getTitle(), musicService.getCurrentSong().getArtist());
+        } catch (NullPointerException e){
+            controller.setAnchorView(findViewById(R.id.linLayout));
+            Log.d(TAG, "music service not connected yet");
+        }
         controller.setEnabled(true);
         controller.show();
+        setupReceiver();
+    }
+
+    private void setupReceiver(){
+        if(receiver != null)
+            unregisterReceiver(receiver);
+        receiver = new SongDataReceiver(controller, findViewById(R.id.linLayout));
+        IntentFilter intentFilter = new IntentFilter();
+        intentFilter.addAction(MusicService.TRANSMIT_ACTION);
+        registerReceiver(receiver, intentFilter);
     }
 
     private void playNext(){
         musicService.playNext();
+        //setController();
         controller.show(0);
     }
 
     private void playPrev(){
         musicService.playPrev();
+        //setController();
         controller.show(0);
     }
 
@@ -259,6 +283,7 @@ public class MainActivity extends AppCompatActivity
         adapter.setPlayingQueue(playingQueue);
         musicService.setSongPosition(Integer.parseInt(view.getTag().toString()));
         musicService.playSong();
+        //setController();
     }
 
     public void artistPicked(View view){
@@ -268,6 +293,7 @@ public class MainActivity extends AppCompatActivity
         adapter.setPlayingQueue(playingQueue);
         musicService.setSongPosition(0);
         musicService.playSong();
+        //setController();
     }
 
     @Override
@@ -275,6 +301,7 @@ public class MainActivity extends AppCompatActivity
         //if(musicService!=null && musicBound)
         Log.d(TAG, "Starting MediaPlayer");
         musicService.startPlayer();
+        //setController();
     }
 
     @Override
@@ -333,6 +360,12 @@ public class MainActivity extends AppCompatActivity
     @Override
     public int getAudioSessionId() {
         return 0;
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        unregisterReceiver(receiver);
     }
 }
 
@@ -461,5 +494,26 @@ class SongAdapter extends BaseAdapter{
         numberTV.setText(String.valueOf(artist.getNumberOfSongs()) + " songs");
         linearLayout.setTag(position);
         return linearLayout;
+    }
+}
+
+class SongDataReceiver extends BroadcastReceiver{
+
+    public static final String TAG = "SongDataReceiver";
+
+    private MusicController controller;
+    private View view;
+
+    public SongDataReceiver(MusicController controller, View view) {
+        this.controller = controller;
+        this.view = view;
+    }
+
+    @Override
+    public void onReceive(Context context, Intent intent) {
+        String title = intent.getStringExtra(MainActivity.TRANSMIT_TITLE);
+        String artist = intent.getStringExtra(MainActivity.TRANSMIT_ARTIST);
+        Log.d(TAG, "Received " + title + " - " + artist);
+        controller.setAnchorView(view, title, artist);
     }
 }

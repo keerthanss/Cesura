@@ -14,6 +14,8 @@ import android.os.PowerManager;
 import android.provider.MediaStore;
 import android.support.annotation.Nullable;
 import android.util.Log;
+import android.view.View;
+import android.widget.MediaController;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -23,6 +25,7 @@ public class MusicService extends Service implements MediaPlayer.OnPreparedListe
 
     private static final String TAG = "MusicService";
     private static final int NOTIFY_ID = 1;
+    public static final String TRANSMIT_ACTION = "transmit";
 
     private MediaPlayer mediaPlayer;
     private int songPosition;
@@ -136,6 +139,16 @@ public class MusicService extends Service implements MediaPlayer.OnPreparedListe
             Log.e(TAG, "Error setting data source :" + e );
         }
         mediaPlayer.prepareAsync();
+        sendSongToActivity();
+    }
+
+    private void sendSongToActivity(){
+        Log.d(TAG, "sending " + currentSong.getTitle() + " to MainActivity");
+        Intent intent = new Intent();
+        intent.setAction(MusicService.TRANSMIT_ACTION);
+        intent.putExtra(MainActivity.TRANSMIT_TITLE, currentSong.getTitle());
+        intent.putExtra(MainActivity.TRANSMIT_ARTIST, currentSong.getArtist());
+        sendBroadcast(intent);
     }
 
     public int getCurrentPosition(){
@@ -181,6 +194,10 @@ public class MusicService extends Service implements MediaPlayer.OnPreparedListe
     public void onDestroy() {
         Log.d(TAG, "destroying service");
         stopForeground(true);
+    }
+
+    public Song getCurrentSong(){
+        return currentSong;
     }
 }
 
