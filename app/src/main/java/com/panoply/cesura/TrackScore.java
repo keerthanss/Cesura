@@ -25,6 +25,17 @@ public class TrackScore {
         this.speechiness = speechiness;
     }
 
+    public TrackScore() {
+        ID = null;
+        key = 0;
+        tempo = 0;
+        timeSignature = 0;
+        loudness = 0;
+        energy = 0;
+        danceability = 0;
+        speechiness = 0;
+    }
+
     public String getID()
     {
         return ID;
