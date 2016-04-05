@@ -154,4 +154,25 @@ public class DatabaseOperations extends SQLiteOpenHelper {
         cursor.close();
         return true;
     }
-}
+    
+    
+    
+    public ArrayList<String> getTopsoredSongs(){ 
+       SQLiteDatabase db = this.getWritableDatabase();
+
+        Cursor cursor = db.rawQuery("SELECT DISTINCT artist,genre FROM " + "TRACK_INFO" + "ORDER BY " + score + " DESC" + "LIMIT 20"+ , null);
+
+        if(cursor!=null)
+        cursor.moveToFirst();
+
+        ArrayList<String> array_artist = new ArrayList<String>();
+        ArrayList<String> array_genre = new ArrayList<String>();
+
+
+        while(cursor.isAfterLast() == false){
+            array_artist.add(cursor.getString( cursor.getColumnIndex("artist") ));
+            cursor.moveToNext();
+        }
+        
+    return array_artist;    
+    }
