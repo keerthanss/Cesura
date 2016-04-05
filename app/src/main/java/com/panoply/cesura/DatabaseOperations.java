@@ -5,7 +5,8 @@ import android.content.Context;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
-import android.provider.ContactsContract;
+
+import java.util.ArrayList;
 
 public class DatabaseOperations extends SQLiteOpenHelper {
 
@@ -23,8 +24,8 @@ public class DatabaseOperations extends SQLiteOpenHelper {
     public static final String COL_LOUDNESS = "Loudness";
     public static final String COL_ENERGY = "Energy";
     public static final String COL_DANCE = "Danceability";
-    public static final String COL_SPEECH = "Speechiness";
     public static final String COL_RATING = "Rating";
+    public static final String COL_SCORE = "Score";
 
     public DatabaseOperations(Context context){
         super(context, DB_NAME, null, DB_VERSION);
@@ -60,7 +61,7 @@ public class DatabaseOperations extends SQLiteOpenHelper {
                                 + COL_LOUDNESS + " REAL, "
                                 + COL_ENERGY + " REAL, "
                                 + COL_DANCE + " REAL, "
-                                + COL_SPEECH + " REAL);";
+                                + COL_SCORE + " REAL);";
         db.execSQL(createSQL);
     }
 
@@ -79,9 +80,17 @@ public class DatabaseOperations extends SQLiteOpenHelper {
         contentValues.put(COL_LOUDNESS, trackScore.getLoudness());
         contentValues.put(COL_ENERGY, trackScore.getEnergy());
         contentValues.put(COL_DANCE, trackScore.getDanceability());
-        contentValues.put(COL_SPEECH, trackScore.getSpeechiness());
+        contentValues.put(COL_SCORE, calcScore(song.getPlayCount(), song.getLastPlay(), song.getRating()));
         db.insert(DB_NAME, null, contentValues);
     }
+
+    private float calcScore(int playCount, int lastPlay, int rating){
+        float affinity = playCount;
+        affinity = affinity / lastPlay;
+        float score = affinity + rating;
+        return score;
+    }
+
 
     public void updateScore(TrackScore trackScore){
         SQLiteDatabase db = this.getWritableDatabase();
@@ -92,7 +101,7 @@ public class DatabaseOperations extends SQLiteOpenHelper {
         contentValues.put(COL_LOUDNESS, trackScore.getLoudness());
         contentValues.put(COL_ENERGY, trackScore.getEnergy());
         contentValues.put(COL_DANCE, trackScore.getDanceability());
-        contentValues.put(COL_SPEECH, trackScore.getSpeechiness());
+        //contentValues.put(COL_SPEECH, trackScore.getSpeechiness());
         db.update(DB_NAME, contentValues, COL_ID + " = ?", new String[]{trackScore.getID()});
     }
 
@@ -100,6 +109,42 @@ public class DatabaseOperations extends SQLiteOpenHelper {
         SQLiteDatabase db = this.getReadableDatabase();
         String findSQL = "SELECT * FROM " + DB_NAME + " WHERE " + COL_ID + " = " + id + "";
         return db.rawQuery(findSQL, null);
+    }
+
+    public ArrayList<TrackScore> getTopSongs(){
+        SQLiteDatabase db = this.getReadableDatabase();
+        String topQuerySQL = "SELECT " + COL_ID
+                                + ", " + COL_KEY
+                                + ", " + COL_TEMPO
+                                + ", " + COL_TIMESIGNATURE
+                                + ", " + COL_LOUDNESS
+                                + ", " + COL_ENERGY
+                                + ", " + COL_DANCE
+                                + " FROM " + DB_NAME
+                                + " ORDER BY " + COL_SCORE
+                                + " DESC"
+                                + " LIMIT 20";
+        Cursor cursor = db.rawQuery(topQuerySQL, null);
+        ArrayList<TrackScore> trackScores = new ArrayList<>();
+        if(cursor!=null && cursor.moveToFirst()){
+            while(!cursor.isAfterLast()) {
+                TrackScore score = new TrackScore();
+
+                score.setID(cursor.getString(cursor.getColumnIndex(COL_ID)));
+                score.setKey(cursor.getInt(cursor.getColumnIndex(COL_KEY)));
+                score.setTempo(cursor.getFloat(cursor.getColumnIndex(COL_TEMPO)));
+                score.setTimeSignature(cursor.getInt(cursor.getColumnIndex(COL_TIMESIGNATURE)));
+                score.setLoudness(cursor.getFloat(cursor.getColumnIndex(COL_LOUDNESS)));
+                score.setEnergy(cursor.getFloat(cursor.getColumnIndex(COL_ENERGY)));
+                score.setDanceability(cursor.getFloat(cursor.getColumnIndex(COL_DANCE)));
+
+                trackScores.add(score);
+
+                cursor.moveToNext();
+            }
+        }
+        cursor.close();
+        return trackScores;
     }
 
     public boolean isTrackPresent(String id){

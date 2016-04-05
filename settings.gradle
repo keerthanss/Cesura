@@ -1,1 +1,1 @@
-include ':app'
+include ':jEN', ':json_simple-1.1', ':app'
