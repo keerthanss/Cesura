@@ -24,7 +24,6 @@ public class DatabaseOperations extends SQLiteOpenHelper {
     public static final String COL_LOUDNESS = "Loudness";
     public static final String COL_ENERGY = "Energy";
     public static final String COL_DANCE = "Danceability";
-    public static final String COL_SPEECH = "Speechiness";
     public static final String COL_RATING = "Rating";
     public static final String COL_SCORE = "Score";
 
@@ -62,7 +61,6 @@ public class DatabaseOperations extends SQLiteOpenHelper {
                                 + COL_LOUDNESS + " REAL, "
                                 + COL_ENERGY + " REAL, "
                                 + COL_DANCE + " REAL, "
-                                + COL_SPEECH + " REAL, "
                                 + COL_SCORE + " REAL);";
         db.execSQL(createSQL);
     }
@@ -82,7 +80,6 @@ public class DatabaseOperations extends SQLiteOpenHelper {
         contentValues.put(COL_LOUDNESS, trackScore.getLoudness());
         contentValues.put(COL_ENERGY, trackScore.getEnergy());
         contentValues.put(COL_DANCE, trackScore.getDanceability());
-        //contentValues.put(COL_SPEECH, trackScore.getSpeechiness());
         contentValues.put(COL_SCORE, calcScore(song.getPlayCount(), song.getLastPlay(), song.getRating()));
         db.insert(DB_NAME, null, contentValues);
     }
@@ -146,6 +143,7 @@ public class DatabaseOperations extends SQLiteOpenHelper {
                 cursor.moveToNext();
             }
         }
+        cursor.close();
         return trackScores;
     }
 
