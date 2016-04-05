@@ -111,6 +111,14 @@ public class DatabaseOperations extends SQLiteOpenHelper {
         return db.rawQuery(findSQL, null);
     }
 
+    public float getRangeOfTempo(){
+        SQLiteDatabase db = this.getReadableDatabase();
+        float maxTempo = Float.parseFloat("SELECT MIN FROM " + DB_NAME + "WHERE " + COL_ID + " = " + COL_TEMPO);
+        float minTempo = Float.parseFloat("SELECT MAX FROM " + DB_NAME + "WHERE " + COL_ID + " = " + COL_TEMPO);
+
+        return maxTempo - minTempo;
+    }
+
     public ArrayList<TrackScore> getTopSongs(){
         SQLiteDatabase db = this.getReadableDatabase();
         String topQuerySQL = "SELECT " + COL_ID
@@ -154,4 +162,5 @@ public class DatabaseOperations extends SQLiteOpenHelper {
         cursor.close();
         return true;
     }
+
 }

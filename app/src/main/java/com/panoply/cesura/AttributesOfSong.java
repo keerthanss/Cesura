@@ -20,12 +20,12 @@ public class AttributesOfSong{
         en.setTraceRecvs(false);
     }
 
-    public TrackScore getAttributes(String artist,String title)
+    public TrackScore getAttributes(com.panoply.cesura.Song song)
             throws EchoNestException {
         SongParams p = new SongParams();
         TrackScore track = new TrackScore();
-        p.setArtist(artist);
-        p.setTitle(title);
+        p.setArtist(song.getArtist());
+        p.setTitle(song.getTitle());
         p.setResults(1);
         p.includeAudioSummary();
         List<Song> songs = en.searchSongs(p);
@@ -54,7 +54,7 @@ public class AttributesOfSong{
         }
     }
 
-    public static void main(String[] args) throws EchoNestException {
+    /*public static void main(String[] args) throws EchoNestException {
         AttributesOfSong song = new AttributesOfSong();
         TrackScore track;
         System.out.println("Enter artist and song name: ");
@@ -74,6 +74,6 @@ public class AttributesOfSong{
         }
         else
             System.out.println("Couldn't retrieve data");
-    }
+    }*/
 
 }
