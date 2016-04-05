@@ -157,7 +157,7 @@ public class DatabaseOperations extends SQLiteOpenHelper {
     
     
     
-    public ArrayList<String> getTopsoredSongs(){ 
+    public ArrayList<String> getTopScoredSongs(){ 
        SQLiteDatabase db = this.getWritableDatabase();
 
         Cursor cursor = db.rawQuery("SELECT DISTINCT artist,genre FROM " + "TRACK_INFO" + "ORDER BY " + score + " DESC" + "LIMIT 20"+ , null);
