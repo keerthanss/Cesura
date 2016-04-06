@@ -2,7 +2,8 @@ package com.panoply.cesura;
 
 import android.content.Context;
 
-import com.echonest.api.v4.EchoNestException;
+import com.echonest.api.v4.*;
+import com.echonest.api.v4.Song;
 
 import java.util.ArrayList;
 
@@ -18,8 +19,9 @@ public class VarianceCalculation {
         this.context = context;
     }
 
-    public ArrayList<Song> calculateVariance(ArrayList<Song> songs) {
+    public ArrayList<com.echonest.api.v4.Song> calculateVarianceAndSuggestSongs(ArrayList<com.echonest.api.v4.Song> songs) {
         int i, variance[] = new int[songs.size()];
+        ArrayList<Song> recSongs = null;
         for (i = 0; i < songs.size(); i++)
             variance[i] = 0;
         try {
@@ -48,11 +50,17 @@ public class VarianceCalculation {
                 songs.set(j,songs.get(i));
             }
 
+            int j = 0;
+            for(i=0;i<songs.size();i++)
+            {
+                if(db.isTrackPresent(songs.get(i).getID()))
+                    recSongs.add(j,songs.get(i));
+            }
         } catch (EchoNestException e) {
             System.out.println("Exception: " + e);
         }
 
-        return songs;
+        return recSongs;
     }
 
     public int VarianceOfAllAttributes(TrackScore newSong, TrackScore songFromDatabase, DatabaseOperations db)
