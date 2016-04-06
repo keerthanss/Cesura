@@ -1,0 +1,74 @@
+public class SearchSongs
+{
+
+    private EchoNestAPI en;
+
+    public SearchSongs() throws EchoNestException {
+        en = new EchoNestAPI();
+        en.setTraceSends(true);
+        en.setTraceRecvs(false);
+    }
+
+    
+
+    public void searchSongsByArtist(String artist, int results)
+            throws EchoNestException {
+        SongParams p = new SongParams();
+        p.setArtist(artist);
+       
+
+        List<Song> songs = en.searchSongs(p);
+        List<Song> fsongs;
+
+        for (int i=0;i<2;i++)
+        {
+          fsongs.add(songs.get(i));  
+        }
+    }
+
+}
+
+
+public class SimlarArtists 
+{
+
+    public static void main(String[] args) throws EchoNestException 
+    {
+
+        EchoNestAPI echoNest = new EchoNestAPI();
+        echoNest.setTraceSends(true);
+        
+       for(i=0;i<array_artist.size();i++)
+       { 
+            List<Artist> artists = echoNest.searchArtists(array_artist.get(i));
+            ArrayList<String> similar_artists = new ArrayList<String>();
+
+            if (artists.size() > 0) 
+            {
+                Artist weezer = artists.get(0);
+                System.out.println("Similar artists for " + weezer.getName());
+
+
+                for (Artist simArtist : weezer.getSimilar(2)) 
+                {
+                  similar_artists.add(simArtist.getName());
+                }
+            }
+
+            else
+            System.out.println("not found");
+       }
+
+
+        
+         SearchSongs sse = new SearchSongsExample();f
+       
+        
+        for(String art : similar_artists)
+        sse.searchSongsByArtist(art, 5);
+
+        System.out.println();
+
+   }
+
+}
