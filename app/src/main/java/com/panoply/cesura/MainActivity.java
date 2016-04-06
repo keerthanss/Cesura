@@ -268,6 +268,9 @@ public class MainActivity extends AppCompatActivity
                 songListView.setAdapter(adapter);
                 break;
             case R.id.nav_recommendation:
+                //adapter.setRecommendations(getRecommendations());
+                adapter.changeMode(SongAdapter.SHOW_RECOMMENDATIONS);
+                songListView.setAdapter(adapter);
                 break;
         }
 
@@ -408,8 +411,8 @@ class SongAdapter extends BaseAdapter{
         this.artistList = artistList;
         layoutInflater = LayoutInflater.from(context);
         mode = SHOW_SONGS;
-        playingQueue = null;
-        recommendations = null;
+        playingQueue = new ArrayList<Song>();
+        recommendations = new ArrayList<Song>();
     }
 
     public void setPlayingQueue(ArrayList<Song> playingQueue){

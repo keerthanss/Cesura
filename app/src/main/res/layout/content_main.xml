@@ -64,10 +64,9 @@
             </LinearLayout>
 
             <RatingBar
-                style="@style/SmallRatingBar"
-                android:layout_width="0dp"
+
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_weight="0.3"
                 android:numStars="5"
                 android:stepSize="1"
                 android:rating="0"
