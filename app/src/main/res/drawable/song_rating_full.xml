@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:id="@+id/ratingBarBackground"
+        android:drawable="@drawable/song_rating_full_empty" />
+    <item android:id="@+id/ratingBarSecondaryProgress"
+        android:drawable="@drawable/song_rating_full_empty"/>
+    <item android:id="@+id/ratingBarProgress"
+        android:drawable="@drawable/song_rating_full_filled"/>
+</layer-list>

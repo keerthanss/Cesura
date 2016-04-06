@@ -15,6 +15,8 @@ import android.os.IBinder;
 import android.provider.MediaStore;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.Snackbar;
+import android.text.Html;
+import android.text.method.LinkMovementMethod;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -32,8 +34,11 @@ import android.widget.BaseAdapter;
 import android.widget.LinearLayout;
 import android.widget.ListView;
 import android.widget.MediaController;
+import android.widget.RatingBar;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
+
+import org.w3c.dom.Text;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -143,12 +148,12 @@ public class MainActivity extends AppCompatActivity
                 }
         );
         controller.setMediaPlayer(this);
-        try {
-            controller.setAnchorView(findViewById(R.id.linLayout), musicService.getCurrentSong().getTitle(), musicService.getCurrentSong().getArtist());
-        } catch (NullPointerException e){
+        //try {
+        //    controller.setAnchorView(findViewById(R.id.linLayout), musicService.getCurrentSong().getTitle(), musicService.getCurrentSong().getArtist());
+        //} catch (NullPointerException e){
             controller.setAnchorView(findViewById(R.id.linLayout));
-            Log.d(TAG, "music service not connected yet");
-        }
+        //    Log.d(TAG, "music service not connected yet");
+        //}
         controller.setEnabled(true);
         controller.show();
         setupReceiver();
@@ -386,6 +391,7 @@ class SongAdapter extends BaseAdapter{
     public static final int SHOW_ARTISTS = 1;
     public static final int SHOW_PLAYLISTS = 2;
     public static final int SHOW_QUEUE = 3;
+    public static final int SHOW_RECOMMENDATIONS = 4;
 
     private static final String TAG = "SongAdapter";
 
@@ -393,6 +399,7 @@ class SongAdapter extends BaseAdapter{
     private LayoutInflater layoutInflater;
     private ArrayList<Artist> artistList;
     private ArrayList<Song> playingQueue;
+    private ArrayList<Song> recommendations;
 
     private int mode;
 
@@ -402,11 +409,14 @@ class SongAdapter extends BaseAdapter{
         layoutInflater = LayoutInflater.from(context);
         mode = SHOW_SONGS;
         playingQueue = null;
+        recommendations = null;
     }
 
     public void setPlayingQueue(ArrayList<Song> playingQueue){
         this.playingQueue = playingQueue;
     }
+
+    public void setRecommendations(ArrayList<Song> recommendations) { this.recommendations = recommendations; }
 
     public boolean changeMode(int newMode){
         switch (newMode){
@@ -414,6 +424,7 @@ class SongAdapter extends BaseAdapter{
             case SHOW_ARTISTS:
             case SHOW_PLAYLISTS:
             case SHOW_QUEUE:
+            case SHOW_RECOMMENDATIONS:
                 mode = newMode;
                 return true;
         }
@@ -431,6 +442,8 @@ class SongAdapter extends BaseAdapter{
                 return artistList.size();
             case SHOW_QUEUE:
                 return playingQueue.size();
+            case SHOW_RECOMMENDATIONS:
+                return recommendations.size();
         }
         return 0;
     }
@@ -444,6 +457,8 @@ class SongAdapter extends BaseAdapter{
                 return artistList.get(position);
             case SHOW_QUEUE:
                 return playingQueue.get(position);
+            case SHOW_RECOMMENDATIONS:
+                return recommendations.get(position);
         }
         return null;
     }
@@ -455,6 +470,8 @@ class SongAdapter extends BaseAdapter{
                 return songList.get(position).getId();
             case SHOW_QUEUE:
                 return playingQueue.get(position).getId();
+            case SHOW_RECOMMENDATIONS:
+                return recommendations.get(position).getId();
         }
         return 0;
     }
@@ -468,8 +485,31 @@ class SongAdapter extends BaseAdapter{
                 return showArtist(position, parent);
             case SHOW_QUEUE:
                 return showSongs(position, parent, playingQueue);
+            case SHOW_RECOMMENDATIONS:
+                return showRecommendations(position, parent, recommendations);
         }
         return null;
+    }
+
+    private LinearLayout showRecommendations(int position, ViewGroup parent, ArrayList<Song> list){
+        LinearLayout linearLayout = (LinearLayout) layoutInflater.inflate(R.layout.recommendations, parent, false);
+        linearLayout.setOrientation(LinearLayout.VERTICAL);
+        TextView titleTV = (TextView) linearLayout.findViewById(R.id.recmdnSongName);
+        TextView artistTV = (TextView) linearLayout.findViewById(R.id.recmdnArtistName);
+        TextView linkTV = (TextView) linearLayout.findViewById(R.id.recmdnLink);
+        linkTV.setMovementMethod(LinkMovementMethod.getInstance());
+        String url = "https://www.youtube.com/results?search_query=";
+        String songTitle = list.get(position).getTitle();
+        String songArtist = list.get(position).getArtist();
+        String searchQuery = songTitle + " " + songArtist;
+        searchQuery = searchQuery.replaceAll(" ", "+");
+        url = url + searchQuery;
+        String hyperlink = "<a href='" + url + "'> Link </a>";
+        linkTV.setText(Html.fromHtml(hyperlink));
+        artistTV.setText(songArtist);
+        titleTV.setText(songTitle);
+        linearLayout.setTag(position);
+        return linearLayout;
     }
 
     private LinearLayout showSongs(int position, ViewGroup parent, ArrayList<Song> list){
@@ -514,6 +554,19 @@ class SongDataReceiver extends BroadcastReceiver{
         String title = intent.getStringExtra(MainActivity.TRANSMIT_TITLE);
         String artist = intent.getStringExtra(MainActivity.TRANSMIT_ARTIST);
         Log.d(TAG, "Received " + title + " - " + artist);
-        controller.setAnchorView(view, title, artist);
+        //controller.setAnchorView(view, title, artist);
+        view.findViewById(R.id.currentSongDetailsLinLayout).setVisibility(View.VISIBLE);
+        TextView titleTV = (TextView) view.findViewById(R.id.songNameTV);
+        TextView artistTV = (TextView) view.findViewById(R.id.artistNameTV);
+        titleTV.setText(title);
+        artistTV.setText(artist);
+        RatingBar ratingBar = (RatingBar) view.findViewById(R.id.songRating);
+        ratingBar.setRating(0.0f);
+        ratingBar.setOnRatingBarChangeListener(new RatingBar.OnRatingBarChangeListener() {
+            @Override
+            public void onRatingChanged(RatingBar ratingBar, float rating, boolean fromUser) {
+
+            }
+        });
     }
 }
