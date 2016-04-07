@@ -1,67 +1,46 @@
 package com.panoply.cesura;
 
+import android.util.Log;
+
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
 
 public class Song {
+    private static final String TAG = "Song";
+
+    public static int RUNNING = 1;
+    public static int STOPPED = -1;
+    public static int PAUSED = 0;
+
+    private static float percentageToQualifyAsPlay = 0.4f;
+
     private long id;
     private String title;
     private String artist;
     private int rating;
-    private String genre;
     private int playCount;
     private int timeSinceLastPlay;
     private String lastPlayTimeStamp;
+    private long startPlay, stopPlay, durationPlayed;
+    private long duration;
+    private int state;
 
-    private class DateTime{
-        private int year;
-        private int month;
-        private int day;
-        private int hour;
-        private int minute;
-        private int second;
 
-        public DateTime(String date){
-            year = Integer.valueOf(date.substring(0, 3));
-            month = Integer.valueOf(date.substring(5, 6));
-            day = Integer.valueOf(date.substring(8, 9));
-            hour = Integer.valueOf(date.substring(11,12));
-            minute = Integer.valueOf(date.substring(14,15));
-            second = Integer.valueOf(date.substring(17,18));
-        }
 
-        public int compareTo(DateTime d){
-            int result=0;
-            if(year != d.year){
-                result = (year - d.year)*24*365;
-            }
-            else{
-                if(month!=d.month){
-                    result = (month - d.month)*30*24;
-                }
-                else{
-                    if(day != d.day){
-                        result = (day - d.day)*24;
-                    }
-                    else{
-                        result = hour - d.hour;
-                    }
-                }
-            }
-
-            return result;
-        }
-    }
-
-    public Song(String artist, long id, String title) {
+    public Song(String artist, long id, String title, long duration) {
         this.artist = artist;
         this.id = id;
         this.title = title;
+        this.duration = duration;
+
+        startPlay = stopPlay = durationPlayed = rating = 0;
+        state = STOPPED;
     }
 
     public void markTimeStamp(){
+        Log.d(TAG, "marking timestamp for " + title);
         lastPlayTimeStamp = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(Calendar.getInstance().getTime());
     }
 
@@ -75,10 +54,6 @@ public class Song {
 
     public String getTitle() {
         return title;
-    }
-
-    public String getGenre() {
-        return genre;
     }
 
     public int getPlayCount() {
@@ -95,5 +70,84 @@ public class Song {
         DateTime current = new DateTime(currentTimeStamp);
         timeSinceLastPlay = current.compareTo(old);
         return timeSinceLastPlay;
+    }
+
+    public void startPlaying(){
+        Log.d(TAG, "playing " + title);
+        startPlay = System.currentTimeMillis();
+        durationPlayed = 0;
+        state = RUNNING;
+    }
+
+    public void pausePlaying(){
+        stopPlay = System.currentTimeMillis();
+        durationPlayed += stopPlay - startPlay;
+        Log.d(TAG, "paused " + title + " with amount played = " + durationPlayed);
+        state = PAUSED;
+    }
+
+    public void resumePlaying(){
+        Log.d(TAG, "resume " + title);
+        startPlay = System.currentTimeMillis();
+        state = RUNNING;
+    }
+
+    public void stopPlaying(){
+        stopPlay = System.currentTimeMillis();
+        durationPlayed += stopPlay - startPlay;
+        Log.d(TAG, "stopped playing " + title + ". Now comparing amount played, " + durationPlayed + " with duration, " + duration);
+        if(durationPlayed > (long) (percentageToQualifyAsPlay * duration) ) {
+            playCount++;
+            markTimeStamp();
+        }
+        durationPlayed = 0;
+        state = STOPPED;
+    }
+
+    public int getState(){
+        return state;
+    }
+}
+
+class DateTime{
+    private int year;
+    private int month;
+    private int day;
+    private int hour;
+    private int minute;
+    private int second;
+
+    public DateTime(String date){
+        year = Integer.valueOf(date.substring(0, 3));
+        month = Integer.valueOf(date.substring(5, 6));
+        day = Integer.valueOf(date.substring(8, 9));
+        hour = Integer.valueOf(date.substring(11,12));
+        minute = Integer.valueOf(date.substring(14,15));
+        second = Integer.valueOf(date.substring(17,18));
+    }
+
+    public int compareTo(DateTime d){
+        int result=0;
+        if(year != d.year){
+            result = (year - d.year)*24*365;
+        }
+        else{
+            if(month!=d.month){
+                result = (month - d.month)*30*24;
+            }
+            else{
+                if(day != d.day){
+                    result = (day - d.day)*24;
+                }
+                else{
+                    if(hour != d.hour){
+                        result = hour - d.hour;
+                    }
+                    result = 1;
+                }
+            }
+        }
+
+        return result;
     }
 }

@@ -194,10 +194,12 @@ public class MainActivity extends AppCompatActivity
             int titleColumn = musicCursor.getColumnIndex(MediaStore.Audio.Media.TITLE);
             int artistColumn = musicCursor.getColumnIndex(MediaStore.Audio.Media.ARTIST);
             int idColumn = musicCursor.getColumnIndex(MediaStore.Audio.Media._ID);
+            int durationColumn = musicCursor.getColumnIndex(MediaStore.Audio.Media.DURATION);
 
             Song song;
             do{
-                song = new Song(musicCursor.getString(artistColumn), musicCursor.getLong(idColumn), musicCursor.getString(titleColumn));
+                song = new Song(musicCursor.getString(artistColumn), musicCursor.getLong(idColumn),
+                                musicCursor.getString(titleColumn), musicCursor.getLong(durationColumn));
                 songArrayList.add(song);
             } while(musicCursor.moveToNext());
         }

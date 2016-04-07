@@ -41,7 +41,7 @@ public class MusicService extends Service implements MediaPlayer.OnPreparedListe
         mediaPlayer = new MediaPlayer();
         initMusicPlayer();
         songPosition = 0;
-        currentSong = null;
+        currentSong = new Song(null, 0, null, 0);
     }
 
     private void initMusicPlayer(){
@@ -79,6 +79,7 @@ public class MusicService extends Service implements MediaPlayer.OnPreparedListe
 
     @Override
     public void onCompletion(MediaPlayer mp) {
+        currentSong.stopPlaying();
         if(mp.getCurrentPosition() != 0){
             mp.reset();
             playNext();
@@ -95,6 +96,7 @@ public class MusicService extends Service implements MediaPlayer.OnPreparedListe
     public void onPrepared(MediaPlayer mp) {
         Log.d(TAG, "media player prepared");
         mp.start();
+        currentSong.startPlaying();
 
         Intent intent = new Intent(this, MainActivity.class);
         intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
@@ -130,6 +132,9 @@ public class MusicService extends Service implements MediaPlayer.OnPreparedListe
     public void playSong(){
         Log.d(TAG, "playing song");
         mediaPlayer.reset();
+        if(currentSong.getState() != Song.STOPPED){
+            currentSong.stopPlaying();
+        }
         currentSong = playingQueue.get(songPosition);
         Uri trackUri = ContentUris.withAppendedId(MediaStore.Audio.Media.EXTERNAL_CONTENT_URI, currentSong.getId());
         try {
@@ -165,6 +170,7 @@ public class MusicService extends Service implements MediaPlayer.OnPreparedListe
 
     public void pausePlayer() {
         mediaPlayer.pause();
+        currentSong.pausePlaying();
     }
 
     public void seek(int position){
@@ -173,10 +179,12 @@ public class MusicService extends Service implements MediaPlayer.OnPreparedListe
 
     public void startPlayer(){
         mediaPlayer.start();
+        currentSong.resumePlaying();
     }
 
 
     public void playNext(){
+        currentSong.stopPlaying();
         songPosition++;
         if(songPosition >= playingQueue.size())
             songPosition = 0;
@@ -184,6 +192,7 @@ public class MusicService extends Service implements MediaPlayer.OnPreparedListe
     }
 
     public void playPrev(){
+        currentSong.stopPlaying();
         songPosition--;
         if(songPosition < 0 )
             songPosition = playingQueue.size() - 1;

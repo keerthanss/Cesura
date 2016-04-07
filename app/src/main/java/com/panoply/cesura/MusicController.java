@@ -2,6 +2,7 @@ package com.panoply.cesura;
 
 import android.content.Context;
 import android.graphics.Color;
+import android.view.MotionEvent;
 import android.view.View;
 import android.widget.LinearLayout;
 import android.widget.MediaController;

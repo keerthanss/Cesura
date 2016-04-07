@@ -14,7 +14,6 @@ public class DatabaseOperations extends SQLiteOpenHelper {
 
     public static final String COL_ID = "Id";
     public static final String COL_ARTIST = "Artist";
-    public static final String COL_GENRE = "Genre";
     public static final String COL_LASTPLAY = "LastPlay";
     public static final String COL_PLAYCOUNT = "PlayCount";
     public static final String COL_KEY = "Key";
@@ -50,7 +49,6 @@ public class DatabaseOperations extends SQLiteOpenHelper {
         String createSQL = "CREATE TABLE IF NOT EXISTS " + DB_NAME + " ("
                                 + COL_ID + " TEXT PRIMARY KEY, "
                                 + COL_ARTIST + " TEXT, "
-                                + COL_GENRE + " TEXT, "
                                 + COL_LASTPLAY + " INTEGER, "
                                 + COL_PLAYCOUNT + " INTEGER, "
                                 + COL_RATING + " INTEGER, "
@@ -69,7 +67,6 @@ public class DatabaseOperations extends SQLiteOpenHelper {
         ContentValues contentValues = new ContentValues();
         contentValues.put(COL_ID, trackScore.getID());
         contentValues.put(COL_ARTIST, song.getArtist());
-        contentValues.put(COL_GENRE, song.getGenre());
         contentValues.put(COL_LASTPLAY, song.getLastPlay());
         contentValues.put(COL_PLAYCOUNT, song.getPlayCount());
         contentValues.put(COL_RATING, song.getRating());
@@ -94,6 +91,13 @@ public class DatabaseOperations extends SQLiteOpenHelper {
         contentValues.put(COL_DANCE, trackScore.getDanceability());
         contentValues.put(COL_SPEECH, trackScore.getSpeechiness());
         db.update(DB_NAME, contentValues, COL_ID + " = ?", new String[]{trackScore.getID()});
+    }
+
+    public void updateRating(String id, int rating){
+        SQLiteDatabase db = this.getWritableDatabase();
+        ContentValues contentValues = new ContentValues();
+        contentValues.put(COL_RATING, rating);
+        db.update(DB_NAME, contentValues, COL_ID + " = ?", new String[]{id});
     }
 
     public Cursor getTrackData(String id){
