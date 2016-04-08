@@ -41,7 +41,7 @@ public class MusicService extends Service implements MediaPlayer.OnPreparedListe
         mediaPlayer = new MediaPlayer();
         initMusicPlayer();
         songPosition = 0;
-        currentSong = new Song(null, 0, null, 0);
+        currentSong = new Song(this, null, 0, null, 0);
     }
 
     private void initMusicPlayer(){

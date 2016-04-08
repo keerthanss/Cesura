@@ -1,5 +1,7 @@
 package com.panoply.cesura;
 
+import android.content.Context;
+import android.database.Cursor;
 import android.util.Log;
 
 import java.text.SimpleDateFormat;
@@ -21,22 +23,51 @@ public class Song {
     private String artist;
     private int rating;
     private int playCount;
-    private int timeSinceLastPlay;
+    private long timeSinceLastPlay;
     private String lastPlayTimeStamp;
     private long startPlay, stopPlay, durationPlayed;
     private long duration;
     private int state;
 
+    private String EchoNestID;
+    private Context context;
 
-
-    public Song(String artist, long id, String title, long duration) {
+    public Song(Context context, String artist, long id, String title, long duration) {
         this.artist = artist;
         this.id = id;
         this.title = title;
         this.duration = duration;
+        this.context = context;
 
         startPlay = stopPlay = durationPlayed = rating = 0;
         state = STOPPED;
+    }
+
+    public Song(Context context, String artist, long id, String title, long duration, String EchoNestId){
+        this(context, artist, id, title, duration);
+        setEchoNestID(EchoNestId);
+    }
+
+    public void setRating(int rating) {
+        this.rating = rating;
+    }
+
+    public void setPlayCount(int playCount) {
+        this.playCount = playCount;
+    }
+
+    public void setTimeSinceLastPlay(long timeSinceLastPlay) {
+        this.timeSinceLastPlay = timeSinceLastPlay;
+    }
+
+    public void setEchoNestID(String ID){
+        EchoNestID = ID;
+        DatabaseOperations databaseOperations = new DatabaseOperations(context);
+        databaseOperations.fetchUserProperties(this);
+    }
+
+    public String getEchoNestID(){
+        return EchoNestID;
     }
 
     public void markTimeStamp(){
@@ -64,7 +95,7 @@ public class Song {
         return rating;
     }
 
-    public int getLastPlay() {
+    public long getLastPlay() {
         String currentTimeStamp = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(Calendar.getInstance().getTime());
         DateTime old = new DateTime(lastPlayTimeStamp);
         DateTime current = new DateTime(currentTimeStamp);
@@ -99,6 +130,8 @@ public class Song {
         if(durationPlayed > (long) (percentageToQualifyAsPlay * duration) ) {
             playCount++;
             markTimeStamp();
+            DatabaseOperations databaseOperations = new DatabaseOperations(context);
+            databaseOperations.updatePlayCount(EchoNestID, playCount);
         }
         durationPlayed = 0;
         state = STOPPED;

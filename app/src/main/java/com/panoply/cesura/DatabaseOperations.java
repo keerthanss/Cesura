@@ -100,6 +100,28 @@ public class DatabaseOperations extends SQLiteOpenHelper {
         db.update(DB_NAME, contentValues, COL_ID + " = ?", new String[]{id});
     }
 
+    public void updatePlayCount(String id, int playCount){
+        SQLiteDatabase db = this.getWritableDatabase();
+        ContentValues contentValues = new ContentValues();
+        contentValues.put(COL_PLAYCOUNT, playCount);
+        db.update(DB_NAME, contentValues, COL_ID + " = ?", new String[]{id});
+    }
+
+    public boolean fetchUserProperties(Song song){
+        String id = song.getEchoNestID();
+        Cursor cursor = getTrackData(id);
+        boolean result = false;
+        if (cursor != null ){
+            cursor.moveToFirst();
+            song.setRating(cursor.getInt(cursor.getColumnIndex(COL_RATING)));
+            song.setTimeSinceLastPlay(cursor.getLong(cursor.getColumnIndex(COL_RATING)));
+            song.setPlayCount(cursor.getInt(cursor.getColumnIndex(COL_RATING)));
+            result = true;
+            cursor.close();
+        }
+        return result;
+    }
+
     public Cursor getTrackData(String id){
         SQLiteDatabase db = this.getReadableDatabase();
         String findSQL = "SELECT * FROM " + DB_NAME + " WHERE " + COL_ID + " = " + id + "";

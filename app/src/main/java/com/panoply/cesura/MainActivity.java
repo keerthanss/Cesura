@@ -198,7 +198,8 @@ public class MainActivity extends AppCompatActivity
 
             Song song;
             do{
-                song = new Song(musicCursor.getString(artistColumn), musicCursor.getLong(idColumn),
+                song = new Song(this,
+                                musicCursor.getString(artistColumn), musicCursor.getLong(idColumn),
                                 musicCursor.getString(titleColumn), musicCursor.getLong(durationColumn));
                 songArrayList.add(song);
             } while(musicCursor.moveToNext());
