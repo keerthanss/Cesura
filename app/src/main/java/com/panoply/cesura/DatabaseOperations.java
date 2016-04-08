@@ -119,7 +119,7 @@ public class DatabaseOperations extends SQLiteOpenHelper {
         return maxTempo - minTempo;
     }
 
-    public ArrayList<TrackScore> getTopSongs(){
+    public ArrayList<TrackScore> getTopSongs(ArrayList<String> artists){
         SQLiteDatabase db = this.getReadableDatabase();
         String topQuerySQL = "SELECT " + COL_ID
                                 + ", " + COL_KEY
@@ -146,12 +146,16 @@ public class DatabaseOperations extends SQLiteOpenHelper {
                 score.setEnergy(cursor.getFloat(cursor.getColumnIndex(COL_ENERGY)));
                 score.setDanceability(cursor.getFloat(cursor.getColumnIndex(COL_DANCE)));
 
+                artists.add(cursor.getString(cursor.getColumnIndex(COL_ARTIST)));
+
                 trackScores.add(score);
 
                 cursor.moveToNext();
             }
         }
-        cursor.close();
+        if (cursor != null) {
+            cursor.close();
+        }
         return trackScores;
     }
 

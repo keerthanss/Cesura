@@ -3,6 +3,8 @@ package com.panoply.cesura;
 /**
  * Created by eeshwarg on 03-04-2016.
  */
+import android.util.Log;
+
 import com.echonest.api.v4.EchoNestAPI;
 import com.echonest.api.v4.EchoNestException;
 import com.echonest.api.v4.Song;
@@ -13,6 +15,7 @@ import java.util.List;
 public class AttributesOfSong{
 
     private EchoNestAPI en;
+    private static final String TAG = "AttributesOfSong";
 
     public AttributesOfSong() throws EchoNestException {
         en = new EchoNestAPI();
@@ -22,6 +25,7 @@ public class AttributesOfSong{
 
     public TrackScore getAttributes(Song song)
             throws EchoNestException {
+        Log.d(TAG,"Getting attributes of Song " + song.getTitle());
         SongParams p = new SongParams();
         TrackScore track = new TrackScore();
         p.setArtist(song.getArtistName());

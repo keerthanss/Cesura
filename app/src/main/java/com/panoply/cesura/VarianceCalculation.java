@@ -1,6 +1,7 @@
 package com.panoply.cesura;
 
 import android.content.Context;
+import android.util.Log;
 
 import com.echonest.api.v4.*;
 import com.echonest.api.v4.Song;
@@ -13,22 +14,24 @@ import java.util.ArrayList;
 public class VarianceCalculation {
 
     public Context context;
+    private static final String TAG = "VarianceCalculation";
 
     public VarianceCalculation(Context context)
     {
         this.context = context;
     }
 
-    public ArrayList<com.echonest.api.v4.Song> calculateVarianceAndSuggestSongs(ArrayList<com.echonest.api.v4.Song> songs) {
+    public ArrayList<com.echonest.api.v4.Song> calculateVarianceAndSuggestSongs(ArrayList<com.echonest.api.v4.Song> songs, ArrayList<TrackScore> songsFromDatabase) {
+        Log.d(TAG,"Calculating variances and suggesting");
         int i, variance[] = new int[songs.size()];
-        ArrayList<Song> recSongs = null;
+        ArrayList<Song> recSongs = new ArrayList<>();
         for (i = 0; i < songs.size(); i++)
             variance[i] = 0;
         try {
             AttributesOfSong attributes = new AttributesOfSong();
             TrackScore newSong;
             DatabaseOperations db = new DatabaseOperations(context);
-            ArrayList<TrackScore> songsFromDatabase = db.getTopSongs();
+            //ArrayList<TrackScore> songsFromDatabase = db.getTopSongs();
 
             for(i=0;i<songs.size();i++)
             {
@@ -54,10 +57,11 @@ public class VarianceCalculation {
             for(i=0;i<songs.size();i++)
             {
                 if(db.isTrackPresent(songs.get(i).getID()))
-                    recSongs.add(j,songs.get(i));
+                        recSongs.add(j,songs.get(i));
+
             }
         } catch (EchoNestException e) {
-            System.out.println("Exception: " + e);
+            Log.e(TAG,"Exception: " + e);
         }
 
         return recSongs;
@@ -65,6 +69,7 @@ public class VarianceCalculation {
 
     public int VarianceOfAllAttributes(TrackScore newSong, TrackScore songFromDatabase, DatabaseOperations db)
     {
+        Log.d(TAG, "Calculating variance between songs " + songFromDatabase.getID() + " and " + newSong.getID());
         int variance = 0;
         variance += Math.abs(newSong.getDanceability() - songFromDatabase.getDanceability());
         variance += Math.abs((newSong.getKey() - songFromDatabase.getKey()) / 11);
