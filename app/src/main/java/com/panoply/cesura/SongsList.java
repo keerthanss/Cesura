@@ -28,7 +28,7 @@ public class SongsList {
 
     public SongsList(Context context) throws EchoNestException {
         this.context = context;
-        EchoNestAPI en = new EchoNestAPI(context.getString(R.string.EchoNest_API_Key));
+        en = new EchoNestAPI(context.getString(R.string.EchoNest_API_Key));
         en.setTraceSends(true);
         en.setTraceRecvs(false);
         similar_artists = new ArrayList<>();
@@ -41,34 +41,39 @@ public class SongsList {
 
         try {
             similar_artists = new ArrayList<>();
-            EchoNestAPI echoNest = new EchoNestAPI(context.getString(R.string.EchoNest_API_Key));
-            echoNest.setTraceSends(true);
+            en.setTraceSends(true);
             DatabaseOperations db = new DatabaseOperations(context);
             ArrayList<String> artistsFromDatabase = new ArrayList<>();
 
             Log.d(TAG, "artistsFromDatabase size = 0");
             songsFromDatabase = db.getTopSongs(artistsFromDatabase);
             Log.d(TAG, "artistsFromDatabase size = " + artistsFromDatabase.size());
-
-                for (int i = 0; i < artistsFromDatabase.size(); i++) {
-                    List<Artist> artists = echoNest.searchArtists(artistsFromDatabase.get(i));
+            //Change 5 to artistsFromDatabase.size()
+                for (int i = 0; i < 5; i++) {
+                    List<Artist> artists = en.searchArtists(artistsFromDatabase.get(i));
 
                     if (artists.size() > 0) {
                         Artist eachArtist = artists.get(0);
 
-
-                        for (Artist simArtist : eachArtist.getSimilar(2)) {
+                        //Change 1 to 2
+                        for (Artist simArtist : eachArtist.getSimilar(1)) {
                             similar_artists.add(simArtist.getName());
                         }
                     }
                 }
 
-            for(String art : similar_artists)
-                searchSongsByArtist(art, 100);
-
 
         } catch (EchoNestException e) {
             Log.e(TAG, "Exception: " + e);
+        }
+
+        try{
+            for(String art : similar_artists)
+                //Change 5 to a larger value <= 100
+                searchSongsByArtist(art, 5);
+        }
+        catch (EchoNestException e){
+            Log.e(TAG, "Error while searching songs by artist" );
         }
     }
 
@@ -80,9 +85,15 @@ public class SongsList {
         p.add("results",results);
 
         List<com.echonest.api.v4.Song> tracks = en.searchSongs(p);
+        if(tracks == null) {
+            Log.d(TAG, "No songs by artist");
+            return;
 
-        Random randomGenerator = new Random(tracks.size());
-        int j,i = randomGenerator.nextInt();
+        }
+
+
+        Random randomGenerator = new Random();
+        int j,i = randomGenerator.nextInt(tracks.size());
         do{
             j = randomGenerator.nextInt(tracks.size());
         }while(j==i);
@@ -111,8 +122,8 @@ public class SongsList {
         {
             String right = songs.get(i).getArtistName();
             String left = songs.get(i).getTitle();
-            ArtistAndTitle.get(i).setLeft(left);
-            ArtistAndTitle.get(i).setRight(right);
+            Pair<String, String> pair = new Pair<>(left, right);
+            ArtistAndTitle.add(pair);
         }
 
         return ArtistAndTitle;

@@ -33,12 +33,12 @@ public class VarianceCalculation {
             DatabaseOperations db = new DatabaseOperations(context);
             //ArrayList<TrackScore> songsFromDatabase = db.getTopSongs();
 
-            for(i=0;i<songs.size();i++)
+            for(i=0;i<3;i++)
             {
                 int j,k;
 
                 newSong = attributes.getAttributes(new Pair<String, String>(songs.get(i).getTitle(), songs.get(i).getArtistName()));
-                for(j=0;j<20;j++)
+                for(j=0;j<songsFromDatabase.size();j++)
                     variance[i] += VarianceOfAllAttributes(newSong, songsFromDatabase.get(j),db);
                 int key = variance[i];
 
@@ -70,7 +70,7 @@ public class VarianceCalculation {
 
     public int VarianceOfAllAttributes(TrackScore newSong, TrackScore songFromDatabase, DatabaseOperations db)
     {
-        Log.d(TAG, "Calculating variance between songs " + songFromDatabase.getID() + " and " + newSong.getID());
+        Log.d(TAG, "Calculating variance between songs " + songFromDatabase.toString() + " and " + newSong.toString());
         int variance = 0;
         variance += Math.abs(newSong.getDanceability() - songFromDatabase.getDanceability());
         variance += Math.abs((newSong.getKey() - songFromDatabase.getKey()) / 11);
