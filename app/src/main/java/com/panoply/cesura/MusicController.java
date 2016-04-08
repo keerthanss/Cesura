@@ -39,7 +39,7 @@ public class MusicController extends MediaController {
         addView(linearLayout);
     }
 
-    public void setAnchorView(View view, Song song) {
+    public void setAnchorView(View view, localSong song) {
         super.setAnchorView(view);
         TextView textView = new TextView(getContext());
         textView.setText(song.getTitle());

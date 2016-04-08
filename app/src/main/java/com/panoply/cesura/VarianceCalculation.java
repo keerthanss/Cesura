@@ -36,7 +36,8 @@ public class VarianceCalculation {
             for(i=0;i<songs.size();i++)
             {
                 int j,k;
-                newSong = attributes.getAttributes(songs.get(i));
+
+                newSong = attributes.getAttributes(new Pair<String, String>(songs.get(i).getTitle(), songs.get(i).getArtistName()));
                 for(j=0;j<20;j++)
                     variance[i] += VarianceOfAllAttributes(newSong, songsFromDatabase.get(j),db);
                 int key = variance[i];

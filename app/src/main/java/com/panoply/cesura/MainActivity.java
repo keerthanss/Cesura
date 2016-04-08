@@ -38,6 +38,8 @@ import android.widget.RatingBar;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
 
+import com.echonest.api.v4.EchoNestException;
+
 import org.w3c.dom.Text;
 
 import java.util.ArrayList;
@@ -54,9 +56,9 @@ public class MainActivity extends AppCompatActivity
     public static final String TRANSMIT_ARTIST = "songArtistInfo";
 
     private ListView songListView;
-    private ArrayList<Song> songArrayList;
+    private ArrayList<localSong> songArrayList;
 
-    private ArrayList<Song> playingQueue;
+    private ArrayList<localSong> playingQueue;
     private ArrayList<Artist> artistArrayList;
 
     private SongAdapter adapter;
@@ -68,6 +70,10 @@ public class MainActivity extends AppCompatActivity
     private MusicController controller;
 
     private SongDataReceiver receiver;
+
+    private SongsList songRecs;
+
+    private DatabaseOperations databaseOperations;
 
     private ServiceConnection musicConnection = new ServiceConnection() {
         @Override
@@ -103,12 +109,12 @@ public class MainActivity extends AppCompatActivity
         NavigationView navigationView = (NavigationView) findViewById(R.id.nav_view);
         navigationView.setNavigationItemSelectedListener(this);
 
-        songArrayList = new ArrayList<Song>();
+        songArrayList = new ArrayList<localSong>();
         populateSongList();
         artistArrayList = Artist.fetchArtists(songArrayList);
-        Collections.sort(songArrayList, new Comparator<Song>() {
+        Collections.sort(songArrayList, new Comparator<localSong>() {
             @Override
-            public int compare(Song lhs, Song rhs) {
+            public int compare(localSong lhs, localSong rhs) {
                 return lhs.getTitle().compareTo(rhs.getTitle());
             }
         });
@@ -128,6 +134,14 @@ public class MainActivity extends AppCompatActivity
                 setController();
             }
         });
+
+        try {
+            songRecs = new SongsList(this);
+        }catch (EchoNestException e){
+            Log.e(TAG, "Error : " + e);
+        }
+
+        databaseOperations = new DatabaseOperations(this);
     }
 
     private void setController(){
@@ -196,12 +210,18 @@ public class MainActivity extends AppCompatActivity
             int idColumn = musicCursor.getColumnIndex(MediaStore.Audio.Media._ID);
             int durationColumn = musicCursor.getColumnIndex(MediaStore.Audio.Media.DURATION);
 
-            Song song;
+            localSong song;
             do{
-                song = new Song(this,
+                song = new localSong(this,
                                 musicCursor.getString(artistColumn), musicCursor.getLong(idColumn),
                                 musicCursor.getString(titleColumn), musicCursor.getLong(durationColumn));
                 songArrayList.add(song);
+                try {
+                    TrackScore trackScore = new AttributesOfSong().getAttributes(new Pair<String,String>(song.getTitle(),song.getArtist()));
+                    databaseOperations.insertSong(song, trackScore);
+                }catch(EchoNestException e){
+                    Log.e(TAG, "Error fetching attributes");
+                }
             } while(musicCursor.moveToNext());
         }
     }
@@ -271,7 +291,7 @@ public class MainActivity extends AppCompatActivity
                 songListView.setAdapter(adapter);
                 break;
             case R.id.nav_recommendation:
-                //adapter.setRecommendations(getRecommendations());
+                adapter.setRecommendations(songRecs.getRecommendations());
                 adapter.changeMode(SongAdapter.SHOW_RECOMMENDATIONS);
                 songListView.setAdapter(adapter);
                 break;
@@ -401,28 +421,28 @@ class SongAdapter extends BaseAdapter{
 
     private static final String TAG = "SongAdapter";
 
-    private ArrayList<Song> songList;
+    private ArrayList<localSong> songList;
     private LayoutInflater layoutInflater;
     private ArrayList<Artist> artistList;
-    private ArrayList<Song> playingQueue;
-    private ArrayList<Song> recommendations;
+    private ArrayList<localSong> playingQueue;
+    private ArrayList<Pair<String, String>> recommendations;
 
     private int mode;
 
-    public SongAdapter(Context context, ArrayList<Song> songList, ArrayList<Artist> artistList){
+    public SongAdapter(Context context, ArrayList<localSong> songList, ArrayList<Artist> artistList){
         this.songList = songList;
         this.artistList = artistList;
         layoutInflater = LayoutInflater.from(context);
         mode = SHOW_SONGS;
-        playingQueue = new ArrayList<Song>();
-        recommendations = new ArrayList<Song>();
+        playingQueue = new ArrayList<localSong>();
+        recommendations = new ArrayList<Pair<String, String>>();
     }
 
-    public void setPlayingQueue(ArrayList<Song> playingQueue){
+    public void setPlayingQueue(ArrayList<localSong> playingQueue){
         this.playingQueue = playingQueue;
     }
 
-    public void setRecommendations(ArrayList<Song> recommendations) { this.recommendations = recommendations; }
+    public void setRecommendations(ArrayList<Pair<String, String>> recommendations) { this.recommendations = recommendations; }
 
     public boolean changeMode(int newMode){
         switch (newMode){
@@ -476,8 +496,6 @@ class SongAdapter extends BaseAdapter{
                 return songList.get(position).getId();
             case SHOW_QUEUE:
                 return playingQueue.get(position).getId();
-            case SHOW_RECOMMENDATIONS:
-                return recommendations.get(position).getId();
         }
         return 0;
     }
@@ -497,7 +515,7 @@ class SongAdapter extends BaseAdapter{
         return null;
     }
 
-    private LinearLayout showRecommendations(int position, ViewGroup parent, ArrayList<Song> list){
+    private LinearLayout showRecommendations(int position, ViewGroup parent, ArrayList<Pair<String, String>> list){
         LinearLayout linearLayout = (LinearLayout) layoutInflater.inflate(R.layout.recommendations, parent, false);
         linearLayout.setOrientation(LinearLayout.VERTICAL);
         TextView titleTV = (TextView) linearLayout.findViewById(R.id.recmdnSongName);
@@ -505,8 +523,8 @@ class SongAdapter extends BaseAdapter{
         TextView linkTV = (TextView) linearLayout.findViewById(R.id.recmdnLink);
         linkTV.setMovementMethod(LinkMovementMethod.getInstance());
         String url = "https://www.youtube.com/results?search_query=";
-        String songTitle = list.get(position).getTitle();
-        String songArtist = list.get(position).getArtist();
+        String songTitle = list.get(position).getLeft();
+        String songArtist = list.get(position).getRight();
         String searchQuery = songTitle + " " + songArtist;
         searchQuery = searchQuery.replaceAll(" ", "+");
         url = url + searchQuery;
@@ -518,12 +536,12 @@ class SongAdapter extends BaseAdapter{
         return linearLayout;
     }
 
-    private LinearLayout showSongs(int position, ViewGroup parent, ArrayList<Song> list){
+    private LinearLayout showSongs(int position, ViewGroup parent, ArrayList<localSong> list){
         LinearLayout linearLayout = (LinearLayout) layoutInflater.inflate(R.layout.song, parent, false);
         linearLayout.setOrientation(LinearLayout.VERTICAL);
         TextView titleTV = (TextView) linearLayout.findViewById(R.id.songName);
         TextView artistTV = (TextView) linearLayout.findViewById(R.id.songArtist);
-        Song song = list.get(position);
+        localSong song = list.get(position);
         titleTV.setText(song.getTitle());
         artistTV.setText(song.getArtist());
         linearLayout.setTag(position);

@@ -89,7 +89,7 @@ public class SongsList {
         songs.add(tracks.get(j));
     }
 
-    public List<Pair<String, String>> getRecommendations(){
+    public ArrayList<Pair<String, String>> getRecommendations(){
         getSimilarArtists();
         //After calling the above method, the ArrayList 'songs' contains songs of similar artists to top 20 artists.
 
@@ -103,12 +103,12 @@ public class SongsList {
         VarianceCalculation obj = new VarianceCalculation(context);
         ArrayList<com.echonest.api.v4.Song> recommendedSongs= obj.calculateVarianceAndSuggestSongs(result, songsFromDatabase);
 
-        List<Pair<String,String>> ArtistAndTitle = new ArrayList<>();
+        ArrayList<Pair<String,String>> ArtistAndTitle = new ArrayList<>();
 
         for(int i=0;i<recommendedSongs.size();i++)
         {
-            String left = songs.get(i).getArtistName();
-            String right = songs.get(i).getTitle();
+            String right = songs.get(i).getArtistName();
+            String left = songs.get(i).getTitle();
             ArtistAndTitle.get(i).setLeft(left);
             ArtistAndTitle.get(i).setRight(right);
         }

@@ -64,7 +64,7 @@ public class DatabaseOperations extends SQLiteOpenHelper {
         db.execSQL(createSQL);
     }
 
-    public void insertSong(Song song, TrackScore trackScore){
+    public void insertSong(localSong song, TrackScore trackScore){
         SQLiteDatabase db = this.getWritableDatabase();
         ContentValues contentValues = new ContentValues();
         contentValues.put(COL_ID, trackScore.getID());
@@ -115,7 +115,7 @@ public class DatabaseOperations extends SQLiteOpenHelper {
         db.update(DB_NAME, contentValues, COL_ID + " = ?", new String[]{id});
     }
 
-    public boolean fetchUserProperties(Song song){
+    public boolean fetchUserProperties(localSong song){
         String id = song.getEchoNestID();
         Cursor cursor = getTrackData(id);
         boolean result = false;

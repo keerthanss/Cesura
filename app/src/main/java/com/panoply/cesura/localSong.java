@@ -1,15 +1,12 @@
 package com.panoply.cesura;
 
 import android.content.Context;
-import android.database.Cursor;
 import android.util.Log;
 
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
 import java.util.Calendar;
-import java.util.Date;
 
-public class Song {
+public class localSong {
     private static final String TAG = "Song";
 
     public static int RUNNING = 1;
@@ -32,7 +29,7 @@ public class Song {
     private String EchoNestID;
     private Context context;
 
-    public Song(Context context, String artist, long id, String title, long duration) {
+    public localSong(Context context, String artist, long id, String title, long duration) {
         this.artist = artist;
         this.id = id;
         this.title = title;
@@ -43,7 +40,7 @@ public class Song {
         state = STOPPED;
     }
 
-    public Song(Context context, String artist, long id, String title, long duration, String EchoNestId){
+    public localSong(Context context, String artist, long id, String title, long duration, String EchoNestId){
         this(context, artist, id, title, duration);
         setEchoNestID(EchoNestId);
     }

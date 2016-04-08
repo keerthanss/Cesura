@@ -7,7 +7,7 @@ import android.util.Log;
 
 import com.echonest.api.v4.EchoNestAPI;
 import com.echonest.api.v4.EchoNestException;
-import com.echonest.api.v4.Song;
+//import com.echonest.api.v4.Song;
 import com.echonest.api.v4.SongParams;
 import java.util.List;
 
@@ -23,16 +23,16 @@ public class AttributesOfSong{
         en.setTraceRecvs(false);
     }
 
-    public TrackScore getAttributes(Song song)
+    public TrackScore getAttributes(Pair<String,String> pair)
             throws EchoNestException {
-        Log.d(TAG,"Getting attributes of Song " + song.getTitle());
+        Log.d(TAG,"Getting attributes of Song " + pair.getLeft());
         SongParams p = new SongParams();
         TrackScore track = new TrackScore();
-        p.setArtist(song.getArtistName());
-        p.setTitle(song.getTitle());
+        p.setArtist(pair.getRight());
+        p.setTitle(pair.getLeft());
         p.setResults(1);
         p.includeAudioSummary();
-        List<Song> songs = en.searchSongs(p);
+        List<com.echonest.api.v4.Song> songs = en.searchSongs(p);
         if (songs.size() > 0) {
             int key = songs.get(0).getKey();
             track.setKey(key);

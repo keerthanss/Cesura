@@ -29,10 +29,10 @@ public class MusicService extends Service implements MediaPlayer.OnPreparedListe
 
     private MediaPlayer mediaPlayer;
     private int songPosition;
-    private ArrayList<Song> songArrayList;
-    private ArrayList<Song> playingQueue;
+    private ArrayList<localSong> songArrayList;
+    private ArrayList<localSong> playingQueue;
     private final IBinder binder = new MusicBinder();
-    private Song currentSong;
+    private localSong currentSong;
 
     @Override
     public void onCreate() {
@@ -41,7 +41,7 @@ public class MusicService extends Service implements MediaPlayer.OnPreparedListe
         mediaPlayer = new MediaPlayer();
         initMusicPlayer();
         songPosition = 0;
-        currentSong = new Song(this, null, 0, null, 0);
+        currentSong = new localSong(this, null, 0, null, 0);
     }
 
     private void initMusicPlayer(){
@@ -53,12 +53,12 @@ public class MusicService extends Service implements MediaPlayer.OnPreparedListe
         mediaPlayer.setOnPreparedListener(this);
     }
 
-    public void setList(ArrayList<Song> songArrayList){
+    public void setList(ArrayList<localSong> songArrayList){
         Log.d(TAG, "the song list has been set");
         this.songArrayList = songArrayList;
     }
 
-    public void setPlayingQueue(ArrayList<Song> playingQueue){
+    public void setPlayingQueue(ArrayList<localSong> playingQueue){
         this.playingQueue = playingQueue;
     }
 
@@ -132,7 +132,7 @@ public class MusicService extends Service implements MediaPlayer.OnPreparedListe
     public void playSong(){
         Log.d(TAG, "playing song");
         mediaPlayer.reset();
-        if(currentSong.getState() != Song.STOPPED){
+        if(currentSong.getState() != localSong.STOPPED){
             currentSong.stopPlaying();
         }
         currentSong = playingQueue.get(songPosition);
@@ -205,7 +205,7 @@ public class MusicService extends Service implements MediaPlayer.OnPreparedListe
         stopForeground(true);
     }
 
-    public Song getCurrentSong(){
+    public localSong getCurrentSong(){
         return currentSong;
     }
 }
