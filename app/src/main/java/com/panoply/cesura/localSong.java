@@ -94,9 +94,13 @@ public class localSong {
 
     public long getLastPlay() {
         String currentTimeStamp = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(Calendar.getInstance().getTime());
-        DateTime old = new DateTime(lastPlayTimeStamp);
-        DateTime current = new DateTime(currentTimeStamp);
-        timeSinceLastPlay = current.compareTo(old);
+        if(lastPlayTimeStamp!=null) {
+            DateTime old = new DateTime(lastPlayTimeStamp);
+            DateTime current = new DateTime(currentTimeStamp);
+            timeSinceLastPlay = current.compareTo(old);
+        }
+        else
+            timeSinceLastPlay = 1;
         return timeSinceLastPlay;
     }
 

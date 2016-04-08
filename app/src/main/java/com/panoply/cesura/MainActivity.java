@@ -39,8 +39,10 @@ import android.widget.RatingBar;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
 
+import com.echonest.api.v4.EchoNestAPI;
 import com.echonest.api.v4.EchoNestException;
 import com.echonest.api.v4.Song;
+import com.echonest.api.v4.SongParams;
 
 import org.w3c.dom.Text;
 
@@ -48,6 +50,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.List;
 
 public class MainActivity extends AppCompatActivity
         implements NavigationView.OnNavigationItemSelectedListener, MediaController.MediaPlayerControl {
@@ -62,6 +65,7 @@ public class MainActivity extends AppCompatActivity
 
     private ArrayList<localSong> playingQueue;
     private ArrayList<Artist> artistArrayList;
+    private ArrayList<Pair<String, String>> recommendations;
 
     private SongAdapter adapter;
 
@@ -76,6 +80,8 @@ public class MainActivity extends AppCompatActivity
     private SongsList songRecs;
 
     private DatabaseOperations databaseOperations;
+
+    private EchoNestAPI echoNestAPI;
 
     private ServiceConnection musicConnection = new ServiceConnection() {
         @Override
@@ -94,6 +100,11 @@ public class MainActivity extends AppCompatActivity
         }
     };
 
+
+
+
+
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         Log.d(TAG, "onCreate");
@@ -101,6 +112,8 @@ public class MainActivity extends AppCompatActivity
         setContentView(R.layout.activity_main);
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
+
+        echoNestAPI = new EchoNestAPI(getString(R.string.EchoNest_API_Key));
 
         DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
         ActionBarDrawerToggle toggle = new ActionBarDrawerToggle(
@@ -110,6 +123,22 @@ public class MainActivity extends AppCompatActivity
 
         NavigationView navigationView = (NavigationView) findViewById(R.id.nav_view);
         navigationView.setNavigationItemSelectedListener(this);
+
+        try {
+            songRecs = new SongsList(this);
+            recommendations = new ArrayList<>();
+            new AsyncTask<SongsList, Void, Void>() {
+                @Override
+                protected Void doInBackground(SongsList... params) {
+                    Log.d(TAG, ">>>>Fetching recommendations<<<< " + recommendations.size());
+                    recommendations = params[0].getRecommendations();
+                    Log.d(TAG, ">>>>Received recommendations<<<< " + recommendations.size());
+                    return null;
+                }
+            }.execute(songRecs);
+        }catch (EchoNestException e){
+            Log.e(TAG, "Error : " + e);
+        }
 
         songArrayList = new ArrayList<localSong>();
         populateSongList();
@@ -136,12 +165,6 @@ public class MainActivity extends AppCompatActivity
                 setController();
             }
         });
-
-        try {
-            songRecs = new SongsList(this);
-        }catch (EchoNestException e){
-            Log.e(TAG, "Error : " + e);
-        }
 
         databaseOperations = new DatabaseOperations(this);
     }
@@ -218,18 +241,42 @@ public class MainActivity extends AppCompatActivity
                                 musicCursor.getString(artistColumn), musicCursor.getLong(idColumn),
                                 musicCursor.getString(titleColumn), musicCursor.getLong(durationColumn));
                 songArrayList.add(song);
-                Pair<Context, localSong> pair = new Pair<Context, localSong>(this, song);
+                final Pair<Context, localSong> pair = new Pair<Context, localSong>(this, song);
                 new AsyncTask<Pair<Context, localSong>, Void, Void>() {
                     @Override
                     protected Void doInBackground(Pair<Context, localSong>... params) {
                         try {
                             localSong song = params[0].getRight();
-                            TrackScore trackScore = new AttributesOfSong(params[0].getLeft()).getAttributes(new Pair<String,String>(song.getTitle(),song.getArtist()));
-                            databaseOperations.insertSong(song, trackScore);
+                            if(!checkIfPresent(song)) {
+                                TrackScore trackScore = new AttributesOfSong(params[0].getLeft()).getAttributes(new Pair<String, String>(song.getTitle(), song.getArtist()));
+                                databaseOperations.insertSong(song, trackScore);
+                                //song.setEchoNestID(trackScore.getID());
+                            }
                         }catch(EchoNestException e){
                             Log.e(TAG, "Error fetching attributes");
                         }
                         return null;
+                    }
+
+                    private boolean checkIfPresent(localSong song){
+                        SongParams params = new SongParams();
+                        params.setTitle(song.getTitle());
+                        params.setArtist(song.getArtist());
+                        boolean result = false;
+                        try {
+                            List<Song> list = echoNestAPI.searchSongs(params);
+                            if ( !(list == null || list.size() == 0) ) {
+                                String id = list.get(0).getID();
+                                result = databaseOperations.isTrackPresent(id);
+                            }
+                            //if(result)
+                            //    song.setEchoNestID(id);
+                        } catch (EchoNestException e){
+                            Log.e(TAG, "Couldn't check if present");
+                            result = false;
+                        }
+                        Log.d(TAG, "Is " + song.getTitle() + " present already? " + result);
+                        return result;
                     }
                 }.execute(pair);
             } while(musicCursor.moveToNext());
@@ -301,7 +348,7 @@ public class MainActivity extends AppCompatActivity
                 songListView.setAdapter(adapter);
                 break;
             case R.id.nav_recommendation:
-                adapter.setRecommendations(songRecs.getRecommendations());
+                adapter.setRecommendations(recommendations);
                 adapter.changeMode(SongAdapter.SHOW_RECOMMENDATIONS);
                 songListView.setAdapter(adapter);
                 break;
@@ -444,8 +491,8 @@ class SongAdapter extends BaseAdapter{
         this.artistList = artistList;
         layoutInflater = LayoutInflater.from(context);
         mode = SHOW_SONGS;
-        playingQueue = new ArrayList<localSong>();
-        recommendations = new ArrayList<Pair<String, String>>();
+        playingQueue = new ArrayList<>();
+        recommendations = new ArrayList<>();
     }
 
     public void setPlayingQueue(ArrayList<localSong> playingQueue){

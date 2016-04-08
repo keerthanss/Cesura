@@ -31,9 +31,9 @@ public class SongsList {
         EchoNestAPI en = new EchoNestAPI(context.getString(R.string.EchoNest_API_Key));
         en.setTraceSends(true);
         en.setTraceRecvs(false);
-        similar_artists = null;
-        songs = null;
-        songsFromDatabase = null;
+        similar_artists = new ArrayList<>();
+        songs = new ArrayList<>();
+        songsFromDatabase = new ArrayList<>();
     }
 
     public void getSimilarArtists() {
@@ -41,13 +41,14 @@ public class SongsList {
 
         try {
             similar_artists = new ArrayList<>();
-            EchoNestAPI echoNest = new EchoNestAPI();
+            EchoNestAPI echoNest = new EchoNestAPI(context.getString(R.string.EchoNest_API_Key));
             echoNest.setTraceSends(true);
             DatabaseOperations db = new DatabaseOperations(context);
             ArrayList<String> artistsFromDatabase = new ArrayList<>();
 
+            Log.d(TAG, "artistsFromDatabase size = 0");
             songsFromDatabase = db.getTopSongs(artistsFromDatabase);
-
+            Log.d(TAG, "artistsFromDatabase size = " + artistsFromDatabase.size());
 
                 for (int i = 0; i < artistsFromDatabase.size(); i++) {
                     List<Artist> artists = echoNest.searchArtists(artistsFromDatabase.get(i));
@@ -80,10 +81,10 @@ public class SongsList {
 
         List<com.echonest.api.v4.Song> tracks = en.searchSongs(p);
 
-        Random randomGenerator = new Random(100);
+        Random randomGenerator = new Random(tracks.size());
         int j,i = randomGenerator.nextInt();
         do{
-            j = randomGenerator.nextInt(100);
+            j = randomGenerator.nextInt(tracks.size());
         }while(j==i);
 
         songs.add(tracks.get(i));
