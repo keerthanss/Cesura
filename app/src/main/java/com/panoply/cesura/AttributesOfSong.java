@@ -37,41 +37,6 @@ public class AttributesOfSong{
         p.setResults(1);
         p.includeAudioSummary();
 
-        /*new AsyncTask<Pair<EchoNestAPI, SongParams>, Void, TrackScore>() {
-            @Override
-            protected TrackScore doInBackground(Pair<EchoNestAPI, SongParams>... params) {
-                TrackScore track = new TrackScore();
-                List<Song> songs = null;
-                try {
-                    songs = params[0].getLeft().searchSongs(params[0].getRight());
-                    if (songs.size() > 0) {
-                        int key = songs.get(0).getKey();
-                        track.setKey(key);
-
-                        float tempo = (float)songs.get(0).getTempo();
-                        track.setTempo(tempo);
-
-                        int timeSignature = songs.get(0).getTimeSignature();
-                        track.setTimeSignature(timeSignature);
-
-                        float loudness = (float)songs.get(0).getLoudness();
-                        track.setLoudness(loudness);
-
-                        float energy = (float)songs.get(0).getEnergy();
-                        track.setEnergy(energy);
-
-                        float danceability = (float)songs.get(0).getDanceability();
-                        track.setDanceability(danceability);
-
-                        return track;
-                    }
-                } catch (EchoNestException e) {
-                    e.printStackTrace();
-                }
-                return null;
-            }
-        }.execute(new Pair<>(en, p));*/
-
         TrackScore track = new TrackScore();
         List<Song> songs = en.searchSongs(p);
         if (songs.size() > 0) {

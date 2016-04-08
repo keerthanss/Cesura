@@ -10,6 +10,7 @@ import android.content.ServiceConnection;
 import android.database.Cursor;
 import android.graphics.PorterDuff;
 import android.net.Uri;
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.provider.MediaStore;
@@ -39,6 +40,7 @@ import android.widget.RelativeLayout;
 import android.widget.TextView;
 
 import com.echonest.api.v4.EchoNestException;
+import com.echonest.api.v4.Song;
 
 import org.w3c.dom.Text;
 
@@ -216,12 +218,20 @@ public class MainActivity extends AppCompatActivity
                                 musicCursor.getString(artistColumn), musicCursor.getLong(idColumn),
                                 musicCursor.getString(titleColumn), musicCursor.getLong(durationColumn));
                 songArrayList.add(song);
-                try {
-                    TrackScore trackScore = new AttributesOfSong(this).getAttributes(new Pair<String,String>(song.getTitle(),song.getArtist()));
-                    databaseOperations.insertSong(song, trackScore);
-                }catch(EchoNestException e){
-                    Log.e(TAG, "Error fetching attributes");
-                }
+                Pair<Context, localSong> pair = new Pair<Context, localSong>(this, song);
+                new AsyncTask<Pair<Context, localSong>, Void, Void>() {
+                    @Override
+                    protected Void doInBackground(Pair<Context, localSong>... params) {
+                        try {
+                            localSong song = params[0].getRight();
+                            TrackScore trackScore = new AttributesOfSong(params[0].getLeft()).getAttributes(new Pair<String,String>(song.getTitle(),song.getArtist()));
+                            databaseOperations.insertSong(song, trackScore);
+                        }catch(EchoNestException e){
+                            Log.e(TAG, "Error fetching attributes");
+                        }
+                        return null;
+                    }
+                }.execute(pair);
             } while(musicCursor.moveToNext());
         }
     }
