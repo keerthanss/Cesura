@@ -128,6 +128,57 @@ public class DatabaseOperations extends SQLiteOpenHelper {
         return db.rawQuery(findSQL, null);
     }
 
+<<<<<<< HEAD
+=======
+    public float getRangeOfTempo(){
+        SQLiteDatabase db = this.getReadableDatabase();
+        float maxTempo = Float.parseFloat("SELECT MIN FROM " + DB_NAME + "WHERE " + COL_ID + " = " + COL_TEMPO);
+        float minTempo = Float.parseFloat("SELECT MAX FROM " + DB_NAME + "WHERE " + COL_ID + " = " + COL_TEMPO);
+
+        return maxTempo - minTempo;
+    }
+
+    public ArrayList<TrackScore> getTopSongs(ArrayList<String> artists){
+        SQLiteDatabase db = this.getReadableDatabase();
+        String topQuerySQL = "SELECT " + COL_ID
+                                + ", " + COL_KEY
+                                + ", " + COL_TEMPO
+                                + ", " + COL_TIMESIGNATURE
+                                + ", " + COL_LOUDNESS
+                                + ", " + COL_ENERGY
+                                + ", " + COL_DANCE
+                                + " FROM " + DB_NAME
+                                + " ORDER BY " + COL_SCORE
+                                + " DESC"
+                                + " LIMIT 20";
+        Cursor cursor = db.rawQuery(topQuerySQL, null);
+        ArrayList<TrackScore> trackScores = new ArrayList<>();
+        if(cursor!=null && cursor.moveToFirst()){
+            while(!cursor.isAfterLast()) {
+                TrackScore score = new TrackScore();
+
+                score.setID(cursor.getString(cursor.getColumnIndex(COL_ID)));
+                score.setKey(cursor.getInt(cursor.getColumnIndex(COL_KEY)));
+                score.setTempo(cursor.getFloat(cursor.getColumnIndex(COL_TEMPO)));
+                score.setTimeSignature(cursor.getInt(cursor.getColumnIndex(COL_TIMESIGNATURE)));
+                score.setLoudness(cursor.getFloat(cursor.getColumnIndex(COL_LOUDNESS)));
+                score.setEnergy(cursor.getFloat(cursor.getColumnIndex(COL_ENERGY)));
+                score.setDanceability(cursor.getFloat(cursor.getColumnIndex(COL_DANCE)));
+
+                artists.add(cursor.getString(cursor.getColumnIndex(COL_ARTIST)));
+
+                trackScores.add(score);
+
+                cursor.moveToNext();
+            }
+        }
+        if (cursor != null) {
+            cursor.close();
+        }
+        return trackScores;
+    }
+
+>>>>>>> refs/remotes/origin/GettingRecommendations
     public boolean isTrackPresent(String id){
         Cursor cursor = getTrackData(id);
         if(cursor == null)
@@ -135,4 +186,5 @@ public class DatabaseOperations extends SQLiteOpenHelper {
         cursor.close();
         return true;
     }
+
 }
