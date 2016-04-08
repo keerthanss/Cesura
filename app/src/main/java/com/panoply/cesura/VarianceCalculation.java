@@ -28,7 +28,7 @@ public class VarianceCalculation {
         for (i = 0; i < songs.size(); i++)
             variance[i] = 0;
         try {
-            AttributesOfSong attributes = new AttributesOfSong();
+            AttributesOfSong attributes = new AttributesOfSong(context);
             TrackScore newSong;
             DatabaseOperations db = new DatabaseOperations(context);
             //ArrayList<TrackScore> songsFromDatabase = db.getTopSongs();

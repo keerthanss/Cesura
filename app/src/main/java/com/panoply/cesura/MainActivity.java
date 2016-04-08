@@ -217,7 +217,7 @@ public class MainActivity extends AppCompatActivity
                                 musicCursor.getString(titleColumn), musicCursor.getLong(durationColumn));
                 songArrayList.add(song);
                 try {
-                    TrackScore trackScore = new AttributesOfSong().getAttributes(new Pair<String,String>(song.getTitle(),song.getArtist()));
+                    TrackScore trackScore = new AttributesOfSong(this).getAttributes(new Pair<String,String>(song.getTitle(),song.getArtist()));
                     databaseOperations.insertSong(song, trackScore);
                 }catch(EchoNestException e){
                     Log.e(TAG, "Error fetching attributes");

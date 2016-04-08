@@ -1,6 +1,7 @@
 package com.panoply.cesura;
 
 import android.content.Context;
+import android.content.res.Resources;
 import android.util.Log;
 
 import com.echonest.api.v4.*;
@@ -27,7 +28,7 @@ public class SongsList {
 
     public SongsList(Context context) throws EchoNestException {
         this.context = context;
-        EchoNestAPI en = new EchoNestAPI();
+        EchoNestAPI en = new EchoNestAPI(context.getString(R.string.EchoNest_API_Key));
         en.setTraceSends(true);
         en.setTraceRecvs(false);
         similar_artists = null;
