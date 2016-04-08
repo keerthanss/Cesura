@@ -7,6 +7,8 @@ import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
 import android.provider.ContactsContract;
 
+import java.util.ArrayList;
+
 public class DatabaseOperations extends SQLiteOpenHelper {
 
     private static final int DB_VERSION = 1;
@@ -22,8 +24,8 @@ public class DatabaseOperations extends SQLiteOpenHelper {
     public static final String COL_LOUDNESS = "Loudness";
     public static final String COL_ENERGY = "Energy";
     public static final String COL_DANCE = "Danceability";
-    public static final String COL_SPEECH = "Speechiness";
     public static final String COL_RATING = "Rating";
+    public static final String COL_SCORE = "Score";
 
     public DatabaseOperations(Context context){
         super(context, DB_NAME, null, DB_VERSION);
@@ -58,7 +60,7 @@ public class DatabaseOperations extends SQLiteOpenHelper {
                                 + COL_LOUDNESS + " REAL, "
                                 + COL_ENERGY + " REAL, "
                                 + COL_DANCE + " REAL, "
-                                + COL_SPEECH + " REAL);";
+                                + COL_SCORE + " REAL);";
         db.execSQL(createSQL);
     }
 
@@ -76,8 +78,15 @@ public class DatabaseOperations extends SQLiteOpenHelper {
         contentValues.put(COL_LOUDNESS, trackScore.getLoudness());
         contentValues.put(COL_ENERGY, trackScore.getEnergy());
         contentValues.put(COL_DANCE, trackScore.getDanceability());
-        contentValues.put(COL_SPEECH, trackScore.getSpeechiness());
+        contentValues.put(COL_SCORE, calcScore(song.getPlayCount(), song.getLastPlay(), song.getRating()));
         db.insert(DB_NAME, null, contentValues);
+    }
+
+    private float calcScore(int playCount, long lastPlay, int rating){
+        float affinity = playCount;
+        affinity /= lastPlay;
+        float score = affinity + rating;
+        return score;
     }
 
     public void updateScore(TrackScore trackScore){
@@ -89,7 +98,6 @@ public class DatabaseOperations extends SQLiteOpenHelper {
         contentValues.put(COL_LOUDNESS, trackScore.getLoudness());
         contentValues.put(COL_ENERGY, trackScore.getEnergy());
         contentValues.put(COL_DANCE, trackScore.getDanceability());
-        contentValues.put(COL_SPEECH, trackScore.getSpeechiness());
         db.update(DB_NAME, contentValues, COL_ID + " = ?", new String[]{trackScore.getID()});
     }
 
@@ -128,8 +136,6 @@ public class DatabaseOperations extends SQLiteOpenHelper {
         return db.rawQuery(findSQL, null);
     }
 
-<<<<<<< HEAD
-=======
     public float getRangeOfTempo(){
         SQLiteDatabase db = this.getReadableDatabase();
         float maxTempo = Float.parseFloat("SELECT MIN FROM " + DB_NAME + "WHERE " + COL_ID + " = " + COL_TEMPO);
@@ -178,7 +184,6 @@ public class DatabaseOperations extends SQLiteOpenHelper {
         return trackScores;
     }
 
->>>>>>> refs/remotes/origin/GettingRecommendations
     public boolean isTrackPresent(String id){
         Cursor cursor = getTrackData(id);
         if(cursor == null)
