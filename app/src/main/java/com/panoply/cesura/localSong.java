@@ -46,7 +46,10 @@ public class localSong {
     }
 
     public void setRating(int rating) {
+
         this.rating = rating;
+        DatabaseOperations databaseOperations = new DatabaseOperations(context);
+        databaseOperations.updateRating(EchoNestID,rating);
     }
 
     public void setPlayCount(int playCount) {

@@ -18,6 +18,7 @@
 
 
         <service android:name=".MusicService"/>
+        <service android:name=".AnalyseService"/>
 
         <activity
             android:name=".MainActivity"

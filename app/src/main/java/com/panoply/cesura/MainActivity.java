@@ -73,6 +73,10 @@ public class MainActivity extends AppCompatActivity
     private Intent playIntent;
     private boolean musicBound = false;
 
+    private AnalyseService analyseService;
+    private Intent analyseIntent;
+    private boolean analyseBound = false;
+
     private MusicController controller;
 
     private SongDataReceiver receiver;
@@ -100,6 +104,21 @@ public class MainActivity extends AppCompatActivity
         }
     };
 
+    private ServiceConnection analyseConnection = new ServiceConnection() {
+        @Override
+        public void onServiceConnected(ComponentName name, IBinder service) {
+            AnalyseService.AnalyseBinder binder = (AnalyseService.AnalyseBinder) service;
+            analyseService = binder.getService();
+            analyseService.setLocalSongs(songArrayList);
+            //analyseService.analyseAll();
+            analyseBound = true;
+        }
+
+        @Override
+        public void onServiceDisconnected(ComponentName name) {
+            analyseBound = false;
+        }
+    };
 
 
 
@@ -123,22 +142,6 @@ public class MainActivity extends AppCompatActivity
 
         NavigationView navigationView = (NavigationView) findViewById(R.id.nav_view);
         navigationView.setNavigationItemSelectedListener(this);
-
-        try {
-            songRecs = new SongsList(this);
-            recommendations = new ArrayList<>();
-            new AsyncTask<SongsList, Void, Void>() {
-                @Override
-                protected Void doInBackground(SongsList... params) {
-                    Log.d(TAG, ">>>>Fetching recommendations<<<< " + recommendations.size());
-                    recommendations = params[0].getRecommendations();
-                    Log.d(TAG, ">>>>Received recommendations<<<< " + recommendations.size());
-                    return null;
-                }
-            }.execute(songRecs);
-        }catch (EchoNestException e){
-            Log.e(TAG, "Error : " + e);
-        }
 
         songArrayList = new ArrayList<localSong>();
         populateSongList();
@@ -167,6 +170,7 @@ public class MainActivity extends AppCompatActivity
         });
 
         databaseOperations = new DatabaseOperations(this);
+        setupReceiver();
     }
 
     private void setController(){
@@ -195,13 +199,12 @@ public class MainActivity extends AppCompatActivity
         //}
         controller.setEnabled(true);
         controller.show();
-        setupReceiver();
     }
 
     private void setupReceiver(){
         if(receiver != null)
             unregisterReceiver(receiver);
-        receiver = new SongDataReceiver(controller, findViewById(R.id.linLayout));
+        receiver = new SongDataReceiver(findViewById(R.id.linLayout), songArrayList);
         IntentFilter intentFilter = new IntentFilter();
         intentFilter.addAction(MusicService.TRANSMIT_ACTION);
         registerReceiver(receiver, intentFilter);
@@ -241,44 +244,6 @@ public class MainActivity extends AppCompatActivity
                                 musicCursor.getString(artistColumn), musicCursor.getLong(idColumn),
                                 musicCursor.getString(titleColumn), musicCursor.getLong(durationColumn));
                 songArrayList.add(song);
-                final Pair<Context, localSong> pair = new Pair<Context, localSong>(this, song);
-                new AsyncTask<Pair<Context, localSong>, Void, Void>() {
-                    @Override
-                    protected Void doInBackground(Pair<Context, localSong>... params) {
-                        try {
-                            localSong song = params[0].getRight();
-                            if(!checkIfPresent(song)) {
-                                TrackScore trackScore = new AttributesOfSong(params[0].getLeft()).getAttributes(new Pair<String, String>(song.getTitle(), song.getArtist()));
-                                databaseOperations.insertSong(song, trackScore);
-                                //song.setEchoNestID(trackScore.getID());
-                            }
-                        }catch(EchoNestException e){
-                            Log.e(TAG, "Error fetching attributes");
-                        }
-                        return null;
-                    }
-
-                    private boolean checkIfPresent(localSong song){
-                        SongParams params = new SongParams();
-                        params.setTitle(song.getTitle());
-                        params.setArtist(song.getArtist());
-                        boolean result = false;
-                        try {
-                            List<Song> list = echoNestAPI.searchSongs(params);
-                            if ( !(list == null || list.size() == 0) ) {
-                                String id = list.get(0).getID();
-                                result = databaseOperations.isTrackPresent(id);
-                            }
-                            //if(result)
-                            //    song.setEchoNestID(id);
-                        } catch (EchoNestException e){
-                            Log.e(TAG, "Couldn't check if present");
-                            result = false;
-                        }
-                        Log.d(TAG, "Is " + song.getTitle() + " present already? " + result);
-                        return result;
-                    }
-                }.execute(pair);
             } while(musicCursor.moveToNext());
         }
     }
@@ -292,6 +257,33 @@ public class MainActivity extends AppCompatActivity
             bindService(playIntent,musicConnection, Context.BIND_AUTO_CREATE);
             startService(playIntent);
         }
+        if(analyseIntent == null){
+            analyseIntent = new Intent(this, AnalyseService.class);
+            bindService(analyseIntent, analyseConnection, BIND_AUTO_CREATE);
+            startService(analyseIntent);
+        }
+        try {
+            songRecs = new SongsList(this);
+            recommendations = new ArrayList<>();
+            new AsyncTask<SongsList, Void, Void>() {
+                @Override
+                protected Void doInBackground(SongsList... params) {
+                    Log.d(TAG, ">>>>Fetching recommendations<<<< " + recommendations.size());
+                    recommendations = params[0].getRecommendations();
+                    Log.d(TAG, ">>>>Received recommendations<<<< " + recommendations.size());
+                    return null;
+                }
+
+                @Override
+                protected void onPostExecute(Void aVoid) {
+                    //super.onPostExecute(aVoid);
+                    analyseService.analyseAll();
+                }
+            }.execute(songRecs);
+        }catch (EchoNestException e){
+            Log.e(TAG, "Error : " + e);
+        }
+
     }
 
     @Override
@@ -622,12 +614,21 @@ class SongDataReceiver extends BroadcastReceiver{
 
     public static final String TAG = "SongDataReceiver";
 
-    private MusicController controller;
+    private ArrayList<localSong> songs;
     private View view;
 
-    public SongDataReceiver(MusicController controller, View view) {
-        this.controller = controller;
+    public SongDataReceiver(View view, ArrayList<localSong> songs) {
         this.view = view;
+        this.songs = songs;
+    }
+
+    private localSong searchForSong(String title, String artist){
+        for(localSong s : songs){
+            if(s.getTitle().equals(title) && s.getArtist().equals(artist)){
+                return s;
+            }
+        }
+        return null;
     }
 
     @Override
@@ -642,12 +643,25 @@ class SongDataReceiver extends BroadcastReceiver{
         titleTV.setText(title);
         artistTV.setText(artist);
         RatingBar ratingBar = (RatingBar) view.findViewById(R.id.songRating);
-        ratingBar.setRating(0.0f);
+        //ratingBar.setRating(0.0f);
+
+        final localSong song = searchForSong(title, artist);
         ratingBar.setOnRatingBarChangeListener(new RatingBar.OnRatingBarChangeListener() {
             @Override
             public void onRatingChanged(RatingBar ratingBar, float rating, boolean fromUser) {
-
+                if(song!=null){
+                    Log.d(TAG, "Rating changed");
+                    song.setRating((int)rating);
+                }
             }
         });
+        if(song!=null){
+            Log.d(TAG, title + " has rating " + song.getRating());
+            ratingBar.setRating(song.getRating());
+        }
+        else{
+            ratingBar.setRating(0.0f);
+        }
+
     }
 }

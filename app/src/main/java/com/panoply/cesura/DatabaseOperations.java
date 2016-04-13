@@ -6,10 +6,13 @@ import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
 import android.provider.ContactsContract;
+import android.util.Log;
 
 import java.util.ArrayList;
 
 public class DatabaseOperations extends SQLiteOpenHelper {
+
+    public static final String TAG = "DatabaseOperations";
 
     private static final int DB_VERSION = 1;
     private static final String DB_NAME = "TrackInformation";
@@ -104,6 +107,7 @@ public class DatabaseOperations extends SQLiteOpenHelper {
     }
 
     public void updateRating(String id, int rating){
+        Log.d(TAG, "Updating rating of " + id + " to " + rating);
         SQLiteDatabase db = this.getWritableDatabase();
         ContentValues contentValues = new ContentValues();
         contentValues.put(COL_RATING, rating);
@@ -121,8 +125,8 @@ public class DatabaseOperations extends SQLiteOpenHelper {
         String id = song.getEchoNestID();
         Cursor cursor = getTrackData(id);
         boolean result = false;
-        if (cursor != null ){
-            cursor.moveToFirst();
+        if (cursor != null && cursor.moveToFirst() ){
+            Log.d(TAG, "Fetching user properties " + cursor.toString());
             song.setRating(cursor.getInt(cursor.getColumnIndex(COL_RATING)));
             song.setTimeSinceLastPlay(cursor.getLong(cursor.getColumnIndex(COL_RATING)));
             song.setPlayCount(cursor.getInt(cursor.getColumnIndex(COL_RATING)));
@@ -133,6 +137,7 @@ public class DatabaseOperations extends SQLiteOpenHelper {
     }
 
     public Cursor getTrackData(String id){
+        Log.d(TAG, "Fetching track data for " + id);
         SQLiteDatabase db = this.getReadableDatabase();
         String findSQL = "SELECT * FROM " + DB_NAME + " WHERE " + COL_ID + " = \"" + id + "\";";
         return db.rawQuery(findSQL, null);
