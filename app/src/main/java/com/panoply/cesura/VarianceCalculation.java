@@ -33,7 +33,7 @@ public class VarianceCalculation {
             DatabaseOperations db = new DatabaseOperations(context);
             //ArrayList<TrackScore> songsFromDatabase = db.getTopSongs();
 
-            for(i=0;i<3;i++)
+            for(i=0;i<3 && i<songs.size();i++)
             {
                 int j,k;
 

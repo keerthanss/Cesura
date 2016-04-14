@@ -36,7 +36,7 @@ public class SongsList {
         songsFromDatabase = new ArrayList<>();
     }
 
-    public void getSimilarArtists() {
+    public void getSimilarArtists() throws NullPointerException{
         Log.d(TAG, "Getting similar artists");
 
         try {
@@ -49,7 +49,7 @@ public class SongsList {
             songsFromDatabase = db.getTopSongs(artistsFromDatabase);
             Log.d(TAG, "artistsFromDatabase size = " + artistsFromDatabase.size());
             //Change 5 to artistsFromDatabase.size()
-                for (int i = 0; i < 5; i++) {
+                for (int i = 0; i < 5 && i < artistsFromDatabase.size(); i++) {
                     List<Artist> artists = en.searchArtists(artistsFromDatabase.get(i));
 
                     if (artists.size() > 0) {
@@ -102,7 +102,7 @@ public class SongsList {
         songs.add(tracks.get(j));
     }
 
-    public ArrayList<Pair<String, String>> getRecommendations(){
+    public ArrayList<Pair<String, String>> getRecommendations()throws NullPointerException{
         getSimilarArtists();
         //After calling the above method, the ArrayList 'songs' contains songs of similar artists to top 20 artists.
 

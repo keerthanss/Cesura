@@ -76,6 +76,8 @@ public class MainActivity extends AppCompatActivity
     private AnalyseService analyseService;
     private Intent analyseIntent;
     private boolean analyseBound = false;
+    private boolean hasAnalysisStarted = false;
+    private boolean haveRecommendationsFetched = false;
 
     private MusicController controller;
 
@@ -110,8 +112,11 @@ public class MainActivity extends AppCompatActivity
             AnalyseService.AnalyseBinder binder = (AnalyseService.AnalyseBinder) service;
             analyseService = binder.getService();
             analyseService.setLocalSongs(songArrayList);
-            //analyseService.analyseAll();
             analyseBound = true;
+            if(!hasAnalysisStarted && haveRecommendationsFetched) {
+                hasAnalysisStarted = true;
+                analyseService.analyseAll();
+            }
         }
 
         @Override
@@ -269,7 +274,11 @@ public class MainActivity extends AppCompatActivity
                 @Override
                 protected Void doInBackground(SongsList... params) {
                     Log.d(TAG, ">>>>Fetching recommendations<<<< " + recommendations.size());
-                    recommendations = params[0].getRecommendations();
+                    try {
+                        recommendations = params[0].getRecommendations();
+                    }catch (NullPointerException e){
+                        recommendations = new ArrayList<Pair<String, String>>();
+                    }
                     Log.d(TAG, ">>>>Received recommendations<<<< " + recommendations.size());
                     return null;
                 }
@@ -277,7 +286,11 @@ public class MainActivity extends AppCompatActivity
                 @Override
                 protected void onPostExecute(Void aVoid) {
                     //super.onPostExecute(aVoid);
-                    analyseService.analyseAll();
+                    haveRecommendationsFetched = true;
+                    if(analyseBound && !hasAnalysisStarted){
+                        hasAnalysisStarted = true;
+                        analyseService.analyseAll();
+                    }
                 }
             }.execute(songRecs);
         }catch (EchoNestException e){
