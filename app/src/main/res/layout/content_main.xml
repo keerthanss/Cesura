@@ -15,9 +15,65 @@
     android:id="@+id/linLayout"
     android:weightSum="1">
 
-    <ListView
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        android:id="@+id/songList"
-        android:layout_weight="0.85" />
+        android:id="@+id/containerLinLayout"
+        android:layout_weight="0.85"
+        android:orientation="vertical"
+        android:weightSum="1"
+        >
+
+        <ListView
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="0.9"
+            android:id="@+id/songList" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="0.1"
+            android:id="@+id/currentSongDetailsLinLayout"
+            android:orientation="horizontal"
+            android:weightSum="1"
+            >
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:orientation="vertical"
+                android:layout_weight="0.7">
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:textSize="15sp"
+                    android:textStyle="bold"
+                    android:id="@+id/songNameTV"
+                    android:text="Click on a song"
+                    />
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:textSize="12sp"
+                    android:textStyle="normal"
+                    android:id="@+id/artistNameTV"/>
+
+            </LinearLayout>
+
+            <RatingBar
+
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:numStars="5"
+                android:stepSize="1"
+                android:rating="0"
+                android:id="@+id/songRating"
+                />
+
+        </LinearLayout>
+
+    </LinearLayout>
 </LinearLayout>

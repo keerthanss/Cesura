@@ -10,11 +10,14 @@ import android.content.ServiceConnection;
 import android.database.Cursor;
 import android.graphics.PorterDuff;
 import android.net.Uri;
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.provider.MediaStore;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.Snackbar;
+import android.text.Html;
+import android.text.method.LinkMovementMethod;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -32,13 +35,22 @@ import android.widget.BaseAdapter;
 import android.widget.LinearLayout;
 import android.widget.ListView;
 import android.widget.MediaController;
+import android.widget.RatingBar;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
+
+import com.echonest.api.v4.EchoNestAPI;
+import com.echonest.api.v4.EchoNestException;
+import com.echonest.api.v4.Song;
+import com.echonest.api.v4.SongParams;
+
+import org.w3c.dom.Text;
 
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.List;
 
 public class MainActivity extends AppCompatActivity
         implements NavigationView.OnNavigationItemSelectedListener, MediaController.MediaPlayerControl {
@@ -49,10 +61,11 @@ public class MainActivity extends AppCompatActivity
     public static final String TRANSMIT_ARTIST = "songArtistInfo";
 
     private ListView songListView;
-    private ArrayList<Song> songArrayList;
+    private ArrayList<localSong> songArrayList;
 
-    private ArrayList<Song> playingQueue;
+    private ArrayList<localSong> playingQueue;
     private ArrayList<Artist> artistArrayList;
+    private ArrayList<Pair<String, String>> recommendations;
 
     private SongAdapter adapter;
 
@@ -60,9 +73,21 @@ public class MainActivity extends AppCompatActivity
     private Intent playIntent;
     private boolean musicBound = false;
 
+    private AnalyseService analyseService;
+    private Intent analyseIntent;
+    private boolean analyseBound = false;
+    private boolean hasAnalysisStarted = false;
+    private boolean haveRecommendationsFetched = false;
+
     private MusicController controller;
 
     private SongDataReceiver receiver;
+
+    private SongsList songRecs;
+
+    private DatabaseOperations databaseOperations;
+
+    private EchoNestAPI echoNestAPI;
 
     private ServiceConnection musicConnection = new ServiceConnection() {
         @Override
@@ -81,6 +106,29 @@ public class MainActivity extends AppCompatActivity
         }
     };
 
+    private ServiceConnection analyseConnection = new ServiceConnection() {
+        @Override
+        public void onServiceConnected(ComponentName name, IBinder service) {
+            AnalyseService.AnalyseBinder binder = (AnalyseService.AnalyseBinder) service;
+            analyseService = binder.getService();
+            analyseService.setLocalSongs(songArrayList);
+            analyseBound = true;
+            if(!hasAnalysisStarted && haveRecommendationsFetched) {
+                hasAnalysisStarted = true;
+                analyseService.analyseAll();
+            }
+        }
+
+        @Override
+        public void onServiceDisconnected(ComponentName name) {
+            analyseBound = false;
+        }
+    };
+
+
+
+
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         Log.d(TAG, "onCreate");
@@ -88,6 +136,8 @@ public class MainActivity extends AppCompatActivity
         setContentView(R.layout.activity_main);
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
+
+        echoNestAPI = new EchoNestAPI(getString(R.string.EchoNest_API_Key));
 
         DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
         ActionBarDrawerToggle toggle = new ActionBarDrawerToggle(
@@ -98,12 +148,12 @@ public class MainActivity extends AppCompatActivity
         NavigationView navigationView = (NavigationView) findViewById(R.id.nav_view);
         navigationView.setNavigationItemSelectedListener(this);
 
-        songArrayList = new ArrayList<Song>();
+        songArrayList = new ArrayList<localSong>();
         populateSongList();
         artistArrayList = Artist.fetchArtists(songArrayList);
-        Collections.sort(songArrayList, new Comparator<Song>() {
+        Collections.sort(songArrayList, new Comparator<localSong>() {
             @Override
-            public int compare(Song lhs, Song rhs) {
+            public int compare(localSong lhs, localSong rhs) {
                 return lhs.getTitle().compareTo(rhs.getTitle());
             }
         });
@@ -123,6 +173,9 @@ public class MainActivity extends AppCompatActivity
                 setController();
             }
         });
+
+        databaseOperations = new DatabaseOperations(this);
+        setupReceiver();
     }
 
     private void setController(){
@@ -143,21 +196,20 @@ public class MainActivity extends AppCompatActivity
                 }
         );
         controller.setMediaPlayer(this);
-        try {
-            controller.setAnchorView(findViewById(R.id.linLayout), musicService.getCurrentSong().getTitle(), musicService.getCurrentSong().getArtist());
-        } catch (NullPointerException e){
+        //try {
+        //    controller.setAnchorView(findViewById(R.id.linLayout), musicService.getCurrentSong().getTitle(), musicService.getCurrentSong().getArtist());
+        //} catch (NullPointerException e){
             controller.setAnchorView(findViewById(R.id.linLayout));
-            Log.d(TAG, "music service not connected yet");
-        }
+        //    Log.d(TAG, "music service not connected yet");
+        //}
         controller.setEnabled(true);
         controller.show();
-        setupReceiver();
     }
 
     private void setupReceiver(){
         if(receiver != null)
             unregisterReceiver(receiver);
-        receiver = new SongDataReceiver(controller, findViewById(R.id.linLayout));
+        receiver = new SongDataReceiver(findViewById(R.id.linLayout), songArrayList);
         IntentFilter intentFilter = new IntentFilter();
         intentFilter.addAction(MusicService.TRANSMIT_ACTION);
         registerReceiver(receiver, intentFilter);
@@ -189,10 +241,13 @@ public class MainActivity extends AppCompatActivity
             int titleColumn = musicCursor.getColumnIndex(MediaStore.Audio.Media.TITLE);
             int artistColumn = musicCursor.getColumnIndex(MediaStore.Audio.Media.ARTIST);
             int idColumn = musicCursor.getColumnIndex(MediaStore.Audio.Media._ID);
+            int durationColumn = musicCursor.getColumnIndex(MediaStore.Audio.Media.DURATION);
 
-            Song song;
+            localSong song;
             do{
-                song = new Song(musicCursor.getString(artistColumn), musicCursor.getLong(idColumn), musicCursor.getString(titleColumn));
+                song = new localSong(this,
+                                musicCursor.getString(artistColumn), musicCursor.getLong(idColumn),
+                                musicCursor.getString(titleColumn), musicCursor.getLong(durationColumn));
                 songArrayList.add(song);
             } while(musicCursor.moveToNext());
         }
@@ -207,6 +262,41 @@ public class MainActivity extends AppCompatActivity
             bindService(playIntent,musicConnection, Context.BIND_AUTO_CREATE);
             startService(playIntent);
         }
+        if(analyseIntent == null){
+            analyseIntent = new Intent(this, AnalyseService.class);
+            bindService(analyseIntent, analyseConnection, BIND_AUTO_CREATE);
+            startService(analyseIntent);
+        }
+        try {
+            songRecs = new SongsList(this);
+            recommendations = new ArrayList<>();
+            new AsyncTask<SongsList, Void, Void>() {
+                @Override
+                protected Void doInBackground(SongsList... params) {
+                    Log.d(TAG, ">>>>Fetching recommendations<<<< " + recommendations.size());
+                    try {
+                        recommendations = params[0].getRecommendations();
+                    }catch (NullPointerException e){
+                        recommendations = new ArrayList<Pair<String, String>>();
+                    }
+                    Log.d(TAG, ">>>>Received recommendations<<<< " + recommendations.size());
+                    return null;
+                }
+
+                @Override
+                protected void onPostExecute(Void aVoid) {
+                    //super.onPostExecute(aVoid);
+                    haveRecommendationsFetched = true;
+                    if(analyseBound && !hasAnalysisStarted){
+                        hasAnalysisStarted = true;
+                        analyseService.analyseAll();
+                    }
+                }
+            }.execute(songRecs);
+        }catch (EchoNestException e){
+            Log.e(TAG, "Error : " + e);
+        }
+
     }
 
     @Override
@@ -263,6 +353,9 @@ public class MainActivity extends AppCompatActivity
                 songListView.setAdapter(adapter);
                 break;
             case R.id.nav_recommendation:
+                adapter.setRecommendations(recommendations);
+                adapter.changeMode(SongAdapter.SHOW_RECOMMENDATIONS);
+                songListView.setAdapter(adapter);
                 break;
         }
 
@@ -386,27 +479,32 @@ class SongAdapter extends BaseAdapter{
     public static final int SHOW_ARTISTS = 1;
     public static final int SHOW_PLAYLISTS = 2;
     public static final int SHOW_QUEUE = 3;
+    public static final int SHOW_RECOMMENDATIONS = 4;
 
     private static final String TAG = "SongAdapter";
 
-    private ArrayList<Song> songList;
+    private ArrayList<localSong> songList;
     private LayoutInflater layoutInflater;
     private ArrayList<Artist> artistList;
-    private ArrayList<Song> playingQueue;
+    private ArrayList<localSong> playingQueue;
+    private ArrayList<Pair<String, String>> recommendations;
 
     private int mode;
 
-    public SongAdapter(Context context, ArrayList<Song> songList, ArrayList<Artist> artistList){
+    public SongAdapter(Context context, ArrayList<localSong> songList, ArrayList<Artist> artistList){
         this.songList = songList;
         this.artistList = artistList;
         layoutInflater = LayoutInflater.from(context);
         mode = SHOW_SONGS;
-        playingQueue = null;
+        playingQueue = new ArrayList<>();
+        recommendations = new ArrayList<>();
     }
 
-    public void setPlayingQueue(ArrayList<Song> playingQueue){
+    public void setPlayingQueue(ArrayList<localSong> playingQueue){
         this.playingQueue = playingQueue;
     }
+
+    public void setRecommendations(ArrayList<Pair<String, String>> recommendations) { this.recommendations = recommendations; }
 
     public boolean changeMode(int newMode){
         switch (newMode){
@@ -414,6 +512,7 @@ class SongAdapter extends BaseAdapter{
             case SHOW_ARTISTS:
             case SHOW_PLAYLISTS:
             case SHOW_QUEUE:
+            case SHOW_RECOMMENDATIONS:
                 mode = newMode;
                 return true;
         }
@@ -431,6 +530,8 @@ class SongAdapter extends BaseAdapter{
                 return artistList.size();
             case SHOW_QUEUE:
                 return playingQueue.size();
+            case SHOW_RECOMMENDATIONS:
+                return recommendations.size();
         }
         return 0;
     }
@@ -444,6 +545,8 @@ class SongAdapter extends BaseAdapter{
                 return artistList.get(position);
             case SHOW_QUEUE:
                 return playingQueue.get(position);
+            case SHOW_RECOMMENDATIONS:
+                return recommendations.get(position);
         }
         return null;
     }
@@ -468,16 +571,39 @@ class SongAdapter extends BaseAdapter{
                 return showArtist(position, parent);
             case SHOW_QUEUE:
                 return showSongs(position, parent, playingQueue);
+            case SHOW_RECOMMENDATIONS:
+                return showRecommendations(position, parent, recommendations);
         }
         return null;
     }
 
-    private LinearLayout showSongs(int position, ViewGroup parent, ArrayList<Song> list){
+    private LinearLayout showRecommendations(int position, ViewGroup parent, ArrayList<Pair<String, String>> list){
+        LinearLayout linearLayout = (LinearLayout) layoutInflater.inflate(R.layout.recommendations, parent, false);
+        linearLayout.setOrientation(LinearLayout.VERTICAL);
+        TextView titleTV = (TextView) linearLayout.findViewById(R.id.recmdnSongName);
+        TextView artistTV = (TextView) linearLayout.findViewById(R.id.recmdnArtistName);
+        TextView linkTV = (TextView) linearLayout.findViewById(R.id.recmdnLink);
+        linkTV.setMovementMethod(LinkMovementMethod.getInstance());
+        String url = "https://www.youtube.com/results?search_query=";
+        String songTitle = list.get(position).getLeft();
+        String songArtist = list.get(position).getRight();
+        String searchQuery = songTitle + " " + songArtist;
+        searchQuery = searchQuery.replaceAll(" ", "+");
+        url = url + searchQuery;
+        String hyperlink = "<a href='" + url + "'> Link </a>";
+        linkTV.setText(Html.fromHtml(hyperlink));
+        artistTV.setText(songArtist);
+        titleTV.setText(songTitle);
+        linearLayout.setTag(position);
+        return linearLayout;
+    }
+
+    private LinearLayout showSongs(int position, ViewGroup parent, ArrayList<localSong> list){
         LinearLayout linearLayout = (LinearLayout) layoutInflater.inflate(R.layout.song, parent, false);
         linearLayout.setOrientation(LinearLayout.VERTICAL);
         TextView titleTV = (TextView) linearLayout.findViewById(R.id.songName);
         TextView artistTV = (TextView) linearLayout.findViewById(R.id.songArtist);
-        Song song = list.get(position);
+        localSong song = list.get(position);
         titleTV.setText(song.getTitle());
         artistTV.setText(song.getArtist());
         linearLayout.setTag(position);
@@ -501,12 +627,21 @@ class SongDataReceiver extends BroadcastReceiver{
 
     public static final String TAG = "SongDataReceiver";
 
-    private MusicController controller;
+    private ArrayList<localSong> songs;
     private View view;
 
-    public SongDataReceiver(MusicController controller, View view) {
-        this.controller = controller;
+    public SongDataReceiver(View view, ArrayList<localSong> songs) {
         this.view = view;
+        this.songs = songs;
+    }
+
+    private localSong searchForSong(String title, String artist){
+        for(localSong s : songs){
+            if(s.getTitle().equals(title) && s.getArtist().equals(artist)){
+                return s;
+            }
+        }
+        return null;
     }
 
     @Override
@@ -514,6 +649,32 @@ class SongDataReceiver extends BroadcastReceiver{
         String title = intent.getStringExtra(MainActivity.TRANSMIT_TITLE);
         String artist = intent.getStringExtra(MainActivity.TRANSMIT_ARTIST);
         Log.d(TAG, "Received " + title + " - " + artist);
-        controller.setAnchorView(view, title, artist);
+        //controller.setAnchorView(view, title, artist);
+        view.findViewById(R.id.currentSongDetailsLinLayout).setVisibility(View.VISIBLE);
+        TextView titleTV = (TextView) view.findViewById(R.id.songNameTV);
+        TextView artistTV = (TextView) view.findViewById(R.id.artistNameTV);
+        titleTV.setText(title);
+        artistTV.setText(artist);
+        RatingBar ratingBar = (RatingBar) view.findViewById(R.id.songRating);
+        //ratingBar.setRating(0.0f);
+
+        final localSong song = searchForSong(title, artist);
+        ratingBar.setOnRatingBarChangeListener(new RatingBar.OnRatingBarChangeListener() {
+            @Override
+            public void onRatingChanged(RatingBar ratingBar, float rating, boolean fromUser) {
+                if(song!=null){
+                    Log.d(TAG, "Rating changed");
+                    song.setRating((int)rating);
+                }
+            }
+        });
+        if(song!=null){
+            Log.d(TAG, title + " has rating " + song.getRating());
+            ratingBar.setRating(song.getRating());
+        }
+        else{
+            ratingBar.setRating(0.0f);
+        }
+
     }
 }

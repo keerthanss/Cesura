@@ -29,10 +29,10 @@ public class MusicService extends Service implements MediaPlayer.OnPreparedListe
 
     private MediaPlayer mediaPlayer;
     private int songPosition;
-    private ArrayList<Song> songArrayList;
-    private ArrayList<Song> playingQueue;
+    private ArrayList<localSong> songArrayList;
+    private ArrayList<localSong> playingQueue;
     private final IBinder binder = new MusicBinder();
-    private Song currentSong;
+    private localSong currentSong;
 
     @Override
     public void onCreate() {
@@ -41,7 +41,7 @@ public class MusicService extends Service implements MediaPlayer.OnPreparedListe
         mediaPlayer = new MediaPlayer();
         initMusicPlayer();
         songPosition = 0;
-        currentSong = null;
+        currentSong = new localSong(this, null, 0, null, 0);
     }
 
     private void initMusicPlayer(){
@@ -53,12 +53,12 @@ public class MusicService extends Service implements MediaPlayer.OnPreparedListe
         mediaPlayer.setOnPreparedListener(this);
     }
 
-    public void setList(ArrayList<Song> songArrayList){
+    public void setList(ArrayList<localSong> songArrayList){
         Log.d(TAG, "the song list has been set");
         this.songArrayList = songArrayList;
     }
 
-    public void setPlayingQueue(ArrayList<Song> playingQueue){
+    public void setPlayingQueue(ArrayList<localSong> playingQueue){
         this.playingQueue = playingQueue;
     }
 
@@ -79,6 +79,7 @@ public class MusicService extends Service implements MediaPlayer.OnPreparedListe
 
     @Override
     public void onCompletion(MediaPlayer mp) {
+        currentSong.stopPlaying();
         if(mp.getCurrentPosition() != 0){
             mp.reset();
             playNext();
@@ -95,6 +96,7 @@ public class MusicService extends Service implements MediaPlayer.OnPreparedListe
     public void onPrepared(MediaPlayer mp) {
         Log.d(TAG, "media player prepared");
         mp.start();
+        currentSong.startPlaying();
 
         Intent intent = new Intent(this, MainActivity.class);
         intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
@@ -130,6 +132,9 @@ public class MusicService extends Service implements MediaPlayer.OnPreparedListe
     public void playSong(){
         Log.d(TAG, "playing song");
         mediaPlayer.reset();
+        if(currentSong.getState() != localSong.STOPPED){
+            currentSong.stopPlaying();
+        }
         currentSong = playingQueue.get(songPosition);
         Uri trackUri = ContentUris.withAppendedId(MediaStore.Audio.Media.EXTERNAL_CONTENT_URI, currentSong.getId());
         try {
@@ -165,6 +170,7 @@ public class MusicService extends Service implements MediaPlayer.OnPreparedListe
 
     public void pausePlayer() {
         mediaPlayer.pause();
+        currentSong.pausePlaying();
     }
 
     public void seek(int position){
@@ -173,10 +179,12 @@ public class MusicService extends Service implements MediaPlayer.OnPreparedListe
 
     public void startPlayer(){
         mediaPlayer.start();
+        currentSong.resumePlaying();
     }
 
 
     public void playNext(){
+        currentSong.stopPlaying();
         songPosition++;
         if(songPosition >= playingQueue.size())
             songPosition = 0;
@@ -184,6 +192,7 @@ public class MusicService extends Service implements MediaPlayer.OnPreparedListe
     }
 
     public void playPrev(){
+        currentSong.stopPlaying();
         songPosition--;
         if(songPosition < 0 )
             songPosition = playingQueue.size() - 1;
@@ -196,7 +205,7 @@ public class MusicService extends Service implements MediaPlayer.OnPreparedListe
         stopForeground(true);
     }
 
-    public Song getCurrentSong(){
+    public localSong getCurrentSong(){
         return currentSong;
     }
 }
